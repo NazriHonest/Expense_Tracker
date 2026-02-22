@@ -1,0 +1,44 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables (CRITICAL - never commit Neon connection string!)
+.env
+.env.local
+.env.production
+.env.development
+secrets/
+credentials/
+
+# Build files
+build/
+dist/
+*.egg-info/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Local SQLite files (if you have any test databases)
+*.db
+*.sqlite
+*.sqlite3
+test.db

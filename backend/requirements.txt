@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+pydantic
+asyncpg
+python-dotenv
+email-validator
+passlib
+argon2-cffi
+python-jose
+python-multipart
+python-dateutil
