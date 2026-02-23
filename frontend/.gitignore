@@ -1,4 +1,4 @@
-# Backend
+# Backend (these won't affect frontend - you can keep them or remove)
 __pycache__/
 *.py[cod]
 *$py.class
@@ -17,31 +17,31 @@ build/
 *.egg-info/
 
 # Frontend
-frontend/.dart_tool/
-frontend/.idea/
-frontend/.vscode/
-frontend/.flutter-plugins
-frontend/.flutter-plugins-dependencies
-frontend/.packages
-frontend/.pub/
-frontend/build/
-frontend/android/app/build/
-frontend/ios/.generated/
-frontend/ios/Pods/
-frontend/ios/Flutter/Flutter.podspec
-frontend/ios/Flutter/Generated.xcconfig
-frontend/ios/Flutter/flutter_export_environment.sh
-frontend/ios/Runner.xcworkspace/
-frontend/ios/Flutter/App.framework/
-frontend/macos/Pods/
-frontend/windows/Flutter/
-frontend/linux/flutter/
-frontend/*.iml
-frontend/*.log
-frontend/*.lock
-frontend/*.swp
-frontend/.DS_Store
-frontend/coverage/
+.dart_tool/
+.idea/
+.vscode/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+build/
+android/app/build/
+ios/.generated/
+ios/Pods/
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Runner.xcworkspace/
+ios/Flutter/App.framework/
+macos/Pods/
+windows/Flutter/
+linux/flutter/
+*.iml
+*.log
+*.lock
+*.swp
+.DS_Store
+coverage/
 
 # Environment files
 *.env

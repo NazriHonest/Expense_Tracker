@@ -1,1 +1,0 @@
- C:\\Users\\NasirHonest\\.gemini\\antigravity\\scratch\\expense_tracker\\frontend\\.dart_tool\\flutter_build\\cf16299043396f3e406e82d4bceb6fdf\\native_assets.json: 
