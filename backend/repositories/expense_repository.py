@@ -230,7 +230,6 @@ class ExpenseRepository:
             }
 
     # --- Savings Goal Methods ---
-
     async def create_goal(self, goal: SavingsGoalCreate, user_id: int) -> SavingsGoalResponse:
         # 1. Remove 'id' from the columns and the values list ($1)
         # 2. Re-number the placeholders starting from $1

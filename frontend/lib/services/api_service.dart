@@ -276,6 +276,12 @@ class ApiService {
     return response.data;
   }
 
+  // --- Data Export ---
+  Future<Map<String, dynamic>> getExportData() async {
+    final response = await _dio.get('/analytics/export');
+    return response.data;
+  }
+
   // --- Category Management ---
   Future<List<Map<String, dynamic>>> getCategories() async {
     final response = await _dio.get('/categories/');
@@ -302,12 +308,6 @@ class ApiService {
 
   Future<void> deleteCategory(int id) async {
     await _dio.delete('/categories/$id');
-  }
-
-  // --- Data Export ---
-  Future<Map<String, dynamic>> getExportData() async {
-    final response = await _dio.get('/analytics/export');
-    return response.data;
   }
 
   // --- Health Endpoints ---
