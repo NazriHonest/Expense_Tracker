@@ -1,5 +1,3 @@
-import 'dart:ui';
-import 'package:expense_tracker/widgets/glass_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -15,7 +13,7 @@ class GoalDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final goalProv = Provider.of<GoalProvider>(context);
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
 
     final goal = goalProv.goals.firstWhere(
       (g) => g.id == goalId,
@@ -27,135 +25,98 @@ class GoalDetailsScreen extends StatelessWidget {
       ),
     );
 
-    final colorScheme = theme.colorScheme;
     final daysLeft = goal.targetDate.difference(DateTime.now()).inDays;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      extendBodyBehindAppBar: true,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: _circularGlassIconButton(
-            context,
+        leading: IconButton(
+          icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            () => Navigator.pop(context),
+            color: colorScheme.onSurface,
           ),
+          onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          _circularGlassIconButton(
-            context,
-            Icons.delete_outline_rounded,
-            () => _confirmDelete(context, goalProv),
-            iconColor: Colors.redAccent,
+          IconButton(
+            icon: Icon(Icons.delete_outline_rounded, color: colorScheme.error),
+            onPressed: () => _confirmDelete(context, goalProv),
           ),
-          const SizedBox(width: 16),
         ],
       ),
-      body: Stack(
-        children: [
-          // Background Glow matching the goal's unique color
-          Positioned(
-            top: -100,
-            right: -50,
-            child: _glow(goal.color.withOpacity(isDark ? 0.15 : 0.08)),
-          ),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 140),
+        child: Column(
+          children: [
+            _buildHeroCard(context, goal),
+            const SizedBox(height: 20),
 
-          SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(24, 120, 24, 140),
-            child: Column(
+            Row(
               children: [
-                _buildGlassHero(context, goal),
-                const SizedBox(height: 20),
-
-                Row(
-                  children: [
-                    _buildGlassStat(
-                      context,
-                      "Saved",
-                      "\$${goal.currentAmount.toStringAsFixed(0)}",
-                      Icons.account_balance_wallet_rounded,
-                      goal.color,
-                    ),
-                    const SizedBox(width: 16),
-                    _buildGlassStat(
-                      context,
-                      "Target",
-                      "\$${goal.targetAmount.toStringAsFixed(0)}",
-                      Icons.flag_rounded,
-                      colorScheme.primary,
-                    ),
-                  ],
+                _buildStatCard(
+                  context,
+                  "Saved",
+                  "\$${goal.currentAmount.toStringAsFixed(0)}",
+                  Icons.account_balance_wallet_rounded,
+                  goal.color,
                 ),
-
-                const SizedBox(height: 16),
-                _buildGlassTimeCard(context, goal, daysLeft),
-
-                const SizedBox(height: 32),
-
-                // Progress Section
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Overall Progress",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      Text(
-                        "${(goal.progress * 100).toStringAsFixed(1)}%",
-                        style: TextStyle(
-                          color: goal.color,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Track bar using glass styling
-                Container(
-                  height: 14,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color: isDark
-                        ? Colors.white.withOpacity(0.05)
-                        : Colors.black.withOpacity(0.05),
-                  ),
-                  child: Stack(
-                    children: [
-                      FractionallySizedBox(
-                        widthFactor: goal.progress.clamp(0.0, 1.0),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            color: goal.color,
-                            boxShadow: [
-                              BoxShadow(
-                                color: goal.color.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                const SizedBox(width: 16),
+                _buildStatCard(
+                  context,
+                  "Target",
+                  "\$${goal.targetAmount.toStringAsFixed(0)}",
+                  Icons.flag_rounded,
+                  colorScheme.primary,
                 ),
               ],
             ),
-          ),
-        ],
+
+            const SizedBox(height: 16),
+            _buildTimeCard(context, goal, daysLeft),
+
+            const SizedBox(height: 32),
+
+            // Progress Section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Overall Progress",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  Text(
+                    "${(goal.progress * 100).toStringAsFixed(1)}%",
+                    style: TextStyle(
+                      color: goal.color,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Progress Bar
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: LinearProgressIndicator(
+                value: goal.progress.clamp(0.0, 1.0),
+                minHeight: 14,
+                backgroundColor: colorScheme.surfaceContainerHighest,
+                valueColor: AlwaysStoppedAnimation<Color>(goal.color),
+              ),
+            ),
+          ],
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Container(
@@ -165,7 +126,7 @@ class GoalDetailsScreen extends StatelessWidget {
         child: FloatingActionButton.extended(
           onPressed: () => _showContributionSheet(context, goal),
           backgroundColor: goal.color,
-          elevation: 0,
+          elevation: 2,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -183,11 +144,19 @@ class GoalDetailsScreen extends StatelessWidget {
     );
   }
 
-  // --- Glass UI Helpers ---
+  // --- Material 3 Card Components ---
 
-  Widget _buildGlassHero(BuildContext context, SavingsGoal goal) {
-    return GlassBox(
-      borderRadius: 28,
+  Widget _buildHeroCard(BuildContext context, SavingsGoal goal) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
       child: Container(
         height: 320,
         width: double.infinity,
@@ -206,7 +175,11 @@ class GoalDetailsScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               goal.title,
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
               textAlign: TextAlign.center,
             ),
             const Spacer(),
@@ -219,10 +192,7 @@ class GoalDetailsScreen extends StatelessWidget {
                   child: CircularProgressIndicator(
                     value: goal.progress,
                     strokeWidth: 14,
-                    backgroundColor:
-                        Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white.withOpacity(0.05)
-                        : Colors.black.withOpacity(0.05),
+                    backgroundColor: colorScheme.surfaceContainer,
                     color: goal.color,
                     strokeCap: StrokeCap.round,
                   ),
@@ -232,14 +202,18 @@ class GoalDetailsScreen extends StatelessWidget {
                   children: [
                     Text(
                       "\$${(goal.targetAmount - goal.currentAmount).toInt()}",
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
                       ),
                     ),
-                    const Text(
+                    Text(
                       "to go",
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -252,69 +226,52 @@ class GoalDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGlassStat(
+  Widget _buildStatCard(
     BuildContext context,
     String label,
     String val,
     IconData icon,
     Color color,
   ) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Expanded(
-      child: GlassBox(
-        borderRadius: 24,
-        child: Container(
-          height: 110,
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: color, size: 20),
-              const Spacer(),
-              Text(
-                label,
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
-              ),
-              Text(
-                val,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+      child: Container(
+        height: 110,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.2),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildGlassTimeCard(BuildContext context, SavingsGoal goal, int days) {
-    return GlassBox(
-      borderRadius: 20,
-      child: Container(
-        height: 80,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(
-              Icons.calendar_today_rounded,
-              size: 20,
-              color: Colors.grey,
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 18),
             ),
-            const SizedBox(width: 16),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  days >= 0 ? "$days Days Left" : "Goal Ended",
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  "Deadline: ${DateFormat('MMM dd, yyyy').format(goal.targetDate)}",
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
+            const Spacer(),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            Text(
+              val,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
             ),
           ],
         ),
@@ -322,143 +279,175 @@ class GoalDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _circularGlassIconButton(
-    BuildContext context,
-    IconData icon,
-    VoidCallback onTap, {
-    Color? iconColor,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: GlassBox(
-        borderRadius: 50,
-        child: Container(
-          height: 45,
-          width: 45,
-          alignment: Alignment.center,
-          child: Icon(
-            icon,
-            color: iconColor ?? Theme.of(context).colorScheme.primary,
-            size: 20,
-          ),
+  Widget _buildTimeCard(BuildContext context, SavingsGoal goal, int days) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      height: 80,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
         ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.calendar_today_rounded,
+              size: 18,
+              color: colorScheme.primary,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                days >= 0 ? "$days Days Left" : "Goal Ended",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              Text(
+                "Deadline: ${DateFormat('MMM dd, yyyy').format(goal.targetDate)}",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
-
-  Widget _glow(Color color) => Container(
-    height: 300,
-    width: 300,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      boxShadow: [BoxShadow(color: color, blurRadius: 120, spreadRadius: 60)],
-    ),
-  );
 
   // --- Bottom Sheet ---
 
   void _showContributionSheet(BuildContext context, SavingsGoal goal) {
     final controller = TextEditingController();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 32,
-            left: 24,
-            right: 24,
-            top: 32,
-          ),
-          decoration: BoxDecoration(
-            color: isDark
-                ? Colors.black.withOpacity(0.8)
-                : Colors.white.withOpacity(0.9),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                "Add Funds",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      backgroundColor: colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 32,
+          left: 24,
+          right: 24,
+          top: 32,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "Add Funds",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
               ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: controller,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                autofocus: true,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
-                decoration: const InputDecoration(
-                  hintText: "0.00",
-                  border: InputBorder.none,
-                ),
+            ),
+            const SizedBox(height: 24),
+            TextField(
+              controller: controller,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
               ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: goal.color,
-                  minimumSize: const Size(double.infinity, 55),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+              autofocus: true,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
+              decoration: InputDecoration(
+                hintText: "0.00",
+                hintStyle: TextStyle(
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                 ),
-                onPressed: () async {
-                  final amt = double.tryParse(controller.text) ?? 0;
-                  if (amt > 0) {
-                    await Provider.of<GoalProvider>(
-                      context,
-                      listen: false,
-                    ).contributeToGoal(goal.id!, amt);
-                    Navigator.pop(context);
-                  }
-                },
-                child: const Text(
-                  "Confirm",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                border: InputBorder.none,
+              ),
+            ),
+            const SizedBox(height: 24),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: goal.color,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 55),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              const SizedBox(height: 20),
-            ],
-          ),
+              onPressed: () async {
+                final amt = double.tryParse(controller.text) ?? 0;
+                if (amt > 0) {
+                  await Provider.of<GoalProvider>(
+                    context,
+                    listen: false,
+                  ).contributeToGoal(goal.id!, amt);
+                  if (context.mounted) Navigator.pop(context);
+                }
+              },
+              child: const Text(
+                "Confirm",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
         ),
       ),
     );
   }
 
   void _confirmDelete(BuildContext context, GoalProvider prov) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Theme.of(context).colorScheme.surface,
+        backgroundColor: colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Delete Goal?"),
-        content: const Text("This cannot be undone."),
+        title: Text(
+          "Delete Goal?",
+          style: TextStyle(color: colorScheme.onSurface),
+        ),
+        content: Text(
+          "This cannot be undone.",
+          style: TextStyle(color: colorScheme.onSurfaceVariant),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel"),
+            child: Text("Cancel", style: TextStyle(color: colorScheme.primary)),
           ),
-          TextButton(
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
+            ),
             onPressed: () {
               prov.deleteGoal(goalId);
               Navigator.pop(ctx);
               Navigator.pop(context);
             },
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+            child: const Text("Delete"),
           ),
         ],
       ),

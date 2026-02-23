@@ -1,10 +1,11 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/debt.dart';
 import '../providers/debt_provider.dart';
 import '../providers/wallet_provider.dart';
-import '../widgets/glass_widgets.dart';
 import 'add_debt_screen.dart';
 
 class DebtTrackingScreen extends StatefulWidget {
@@ -35,7 +36,6 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -47,61 +47,37 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen>
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
         iconTheme: IconThemeData(color: colorScheme.onSurface),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: colorScheme.primary,
           labelColor: colorScheme.primary,
-          unselectedLabelColor: colorScheme.onSurface.withOpacity(0.5),
+          unselectedLabelColor: colorScheme.onSurfaceVariant,
           tabs: const [
             Tab(text: "Debts (I Owe)"),
             Tab(text: "Loans (Owed To Me)"),
           ],
         ),
       ),
-      body: Stack(
-        children: [
-          Positioned(
-            top: -50,
-            left: -50,
-            child: _glow(colorScheme.error.withOpacity(isDark ? 0.15 : 0.05)),
-          ),
-          Positioned(
-            bottom: -50,
-            right: -50,
-            child: _glow(Colors.green.withOpacity(isDark ? 0.15 : 0.05)),
-          ),
-          Consumer<DebtProvider>(
-            builder: (context, debtProv, _) {
-              if (debtProv.isLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
+      body: Consumer<DebtProvider>(
+        builder: (context, debtProv, _) {
+          if (debtProv.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-              final debts = debtProv.debts.where((d) => d.isOwedByMe).toList();
-              final loans = debtProv.debts.where((d) => !d.isOwedByMe).toList();
+          final debts = debtProv.debts.where((d) => d.isOwedByMe).toList();
+          final loans = debtProv.debts.where((d) => !d.isOwedByMe).toList();
 
-              return TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildDebtList(
-                    debts,
-                    debtProv.totalOwedByMe,
-                    colorScheme,
-                    true,
-                  ),
-                  _buildDebtList(
-                    loans,
-                    debtProv.totalOwedToMe,
-                    colorScheme,
-                    false,
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
+          return TabBarView(
+            controller: _tabController,
+            children: [
+              _buildDebtList(debts, debtProv.totalOwedByMe, colorScheme, true),
+              _buildDebtList(loans, debtProv.totalOwedToMe, colorScheme, false),
+            ],
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
@@ -111,13 +87,12 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen>
           );
         },
         backgroundColor: colorScheme.primary,
-        icon: Icon(Icons.add, color: colorScheme.onPrimary),
-        label: Text(
+        foregroundColor: colorScheme.onPrimary,
+        elevation: 2,
+        icon: const Icon(Icons.add),
+        label: const Text(
           "Add New",
-          style: TextStyle(
-            color: colorScheme.onPrimary,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -131,21 +106,51 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen>
   ) {
     if (list.isEmpty) {
       return Center(
-        child: Text(
-          isDebt
-              ? "You don't owe anyone!\nGreat job."
-              : "Nobody owes you anything.",
-          textAlign: TextAlign.center,
-          style: TextStyle(color: colorScheme.onSurface.withOpacity(0.5)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isDebt
+                  ? Icons.money_off_csred_outlined
+                  : Icons.attach_money_outlined,
+              size: 64,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isDebt ? "You don't owe anyone!" : "Nobody owes you anything.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isDebt
+                  ? "Great job! Add a debt to start tracking."
+                  : "Add a loan to start tracking.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
+            ),
+          ],
         ),
       );
-    } // added closing brace here
+    }
 
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        GlassBox(
+        Container(
           padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+            ),
+          ),
           child: Column(
             children: [
               Text(
@@ -160,9 +165,10 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen>
               const SizedBox(height: 8),
               Text(
                 currencyFormat.format(totalAmount),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ],
@@ -176,6 +182,8 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen>
 
   Widget _buildDebtCard(Debt debt, ColorScheme colorScheme) {
     final isPaid = debt.status == 'paid';
+    final debtColor = debt.isOwedByMe ? colorScheme.error : Colors.green;
+
     return Dismissible(
       key: ValueKey(debt.id),
       direction: DismissDirection.endToStart,
@@ -184,10 +192,13 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen>
         padding: const EdgeInsets.only(right: 20),
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: Colors.redAccent.withOpacity(0.1),
+          color: colorScheme.errorContainer,
           borderRadius: BorderRadius.circular(20),
         ),
-        child: const Icon(Icons.delete_outline, color: Colors.redAccent),
+        child: Icon(
+          Icons.delete_outline_rounded,
+          color: colorScheme.onErrorContainer,
+        ),
       ),
       onDismissed: (_) {
         Provider.of<DebtProvider>(context, listen: false).deleteDebt(debt.id!);
@@ -199,28 +210,34 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen>
             MaterialPageRoute(builder: (_) => AddDebtScreen(debt: debt)),
           );
         },
-        child: GlassBox(
+        child: Container(
           padding: const EdgeInsets.all(16),
           margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+            ),
+          ),
           child: Row(
             children: [
-              CircleAvatar(
-                backgroundColor:
-                    (isPaid
-                            ? Colors.grey
-                            : (debt.isOwedByMe
-                                  ? colorScheme.error
-                                  : Colors.green))
-                        .withOpacity(0.2),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isPaid
+                      ? Colors.grey.withValues(alpha: 0.1)
+                      : debtColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 child: Icon(
                   isPaid
-                      ? Icons.check_circle
+                      ? Icons.check_circle_rounded
                       : (debt.isOwedByMe
-                            ? Icons.money_off
-                            : Icons.attach_money),
-                  color: isPaid
-                      ? Colors.grey
-                      : (debt.isOwedByMe ? colorScheme.error : Colors.green),
+                            ? Icons.money_off_csred_rounded
+                            : Icons.attach_money_rounded),
+                  color: isPaid ? Colors.grey : debtColor,
+                  size: 24,
                 ),
               ),
               const SizedBox(width: 16),
@@ -234,7 +251,9 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen>
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         decoration: isPaid ? TextDecoration.lineThrough : null,
-                        color: isPaid ? Colors.grey : colorScheme.onSurface,
+                        color: isPaid
+                            ? colorScheme.onSurfaceVariant
+                            : colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -243,17 +262,29 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen>
                       style: TextStyle(
                         fontSize: 14,
                         color: isPaid
-                            ? Colors.grey
-                            : colorScheme.onSurface.withOpacity(0.7),
+                            ? colorScheme.onSurfaceVariant
+                            : colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     if (debt.dueDate != null && !isPaid) ...[
                       const SizedBox(height: 4),
-                      Text(
-                        "Due: ${DateFormat('MMM d, yyyy').format(debt.dueDate!)}",
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          "Due: ${DateFormat('MMM d, yyyy').format(debt.dueDate!)}",
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: colorScheme.onSurface,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -262,9 +293,9 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen>
               ),
               if (!isPaid)
                 IconButton(
-                  icon: const Icon(
-                    Icons.check_circle_outline,
-                    color: Colors.grey,
+                  icon: Icon(
+                    Icons.check_circle_outline_rounded,
+                    color: colorScheme.primary,
                   ),
                   onPressed: () => _markAsPaid(debt, colorScheme),
                 ),
@@ -278,16 +309,30 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen>
   void _markAsPaid(Debt debt, ColorScheme colorScheme) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) {
         return Consumer<WalletProvider>(
           builder: (context, walletProv, _) {
             final wallets = walletProv.wallets;
-            return GlassBox(
+            return Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.4,
+                      ),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                   Text(
                     "Settle Debt",
                     style: TextStyle(
@@ -302,45 +347,76 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen>
                         ? "Which account did you pay from?"
                         : "Which account received the funds?",
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: colorScheme.onSurface.withOpacity(0.7),
-                    ),
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 24),
                   if (wallets.isEmpty)
-                    const Text("No wallets found. Please create one.")
+                    Text(
+                      "No wallets found. Please create one.",
+                      style: TextStyle(color: colorScheme.onSurfaceVariant),
+                    )
                   else
                     ...wallets.map(
-                      (w) => ListTile(
-                        leading: Icon(
-                          IconData(w.iconCode, fontFamily: 'MaterialIcons'),
-                          color: Color(w.colorValue),
+                      (w) => Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: colorScheme.outlineVariant.withValues(
+                              alpha: 0.2,
+                            ),
+                          ),
                         ),
-                        title: Text(w.name),
-                        onTap: () async {
-                          Navigator.pop(ctx);
-                          final updated = Debt(
-                            id: debt.id,
-                            title: debt.title,
-                            amount: debt.amount,
-                            dueDate: debt.dueDate,
-                            isOwedByMe: debt.isOwedByMe,
-                            notes: debt.notes,
-                            status: 'paid',
-                            walletId: w.id,
-                          );
-                          await Provider.of<DebtProvider>(
-                            context,
-                            listen: false,
-                          ).updateDebt(debt.id!, updated);
-                          Provider.of<WalletProvider>(
-                            context,
-                            listen: false,
-                          ).fetchWallets(); // Refresh balances
-                        },
+                        child: ListTile(
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Color(w.colorValue).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              IconData(w.iconCode, fontFamily: 'MaterialIcons'),
+                              color: Color(w.colorValue),
+                              size: 20,
+                            ),
+                          ),
+                          title: Text(
+                            w.name,
+                            style: TextStyle(color: colorScheme.onSurface),
+                          ),
+                          trailing: Text(
+                            currencyFormat.format(w.balance),
+                            style: TextStyle(
+                              color: colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          onTap: () async {
+                            Navigator.pop(ctx);
+                            final updated = Debt(
+                              id: debt.id,
+                              title: debt.title,
+                              amount: debt.amount,
+                              dueDate: debt.dueDate,
+                              isOwedByMe: debt.isOwedByMe,
+                              notes: debt.notes,
+                              status: 'paid',
+                              walletId: w.id,
+                            );
+                            await Provider.of<DebtProvider>(
+                              context,
+                              listen: false,
+                            ).updateDebt(debt.id!, updated);
+                            Provider.of<WalletProvider>(
+                              context,
+                              listen: false,
+                            ).fetchWallets(); // Refresh balances
+                          },
+                        ),
                       ),
                     ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 32),
                 ],
               ),
             );
@@ -349,13 +425,4 @@ class _DebtTrackingScreenState extends State<DebtTrackingScreen>
       },
     );
   }
-
-  Widget _glow(Color c) => Container(
-    width: 300,
-    height: 300,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      boxShadow: [BoxShadow(color: c, blurRadius: 100, spreadRadius: 40)],
-    ),
-  );
 }

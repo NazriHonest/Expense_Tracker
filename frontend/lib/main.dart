@@ -99,6 +99,9 @@ class MyApp extends StatelessWidget {
         return MaterialApp(
           title: 'Expense Tracker',
           debugShowCheckedModeBanner: false,
+      //     theme: AppTheme.light,
+      // darkTheme: AppTheme.dark,
+      // themeMode: ThemeMode.system,
           theme: themeProvider.lightTheme,
           darkTheme: themeProvider.darkTheme,
           themeMode: themeProvider.themeMode,

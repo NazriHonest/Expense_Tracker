@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/health_provider.dart';
 import '../models/health.dart';
-import '../widgets/glass_widgets.dart';
 
 class HealthScreen extends StatefulWidget {
   const HealthScreen({super.key});
@@ -46,11 +45,8 @@ class _HealthScreenState extends State<HealthScreen> {
             .clamp(0.0, 1.0);
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text('Health & Wellness'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         centerTitle: true,
         actions: [
           IconButton(
@@ -60,123 +56,89 @@ class _HealthScreenState extends State<HealthScreen> {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          // Background Glows
-          Positioned(
-            top: -100,
-            left: -50,
-            child: _glow(
-              Theme.of(context).colorScheme.primary.withOpacity(0.15),
-            ),
-          ),
-          Positioned(
-            bottom: 100,
-            right: -100,
-            child: _glow(
-              Theme.of(context).colorScheme.tertiary.withOpacity(0.1),
-            ),
-          ),
+      body: RefreshIndicator(
+        onRefresh: () => healthProvider.loadData(),
+        color: Theme.of(context).colorScheme.primary,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildHeader(context),
+              const SizedBox(height: 20),
 
-          SafeArea(
-            child: RefreshIndicator(
-              onRefresh: () => healthProvider.loadData(),
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                child: Column(
+              // Bento Grid: Left (Steps), Right (Sleep & Mood)
+              IntrinsicHeight(
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildHeader(context),
-                    const SizedBox(height: 20),
-
-                    // Bento Grid: Left (Steps), Right (Sleep & Mood)
-                    IntrinsicHeight(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                    Expanded(
+                      flex: 5,
+                      child: _buildStepTracker(
+                        context,
+                        metrics,
+                        settings,
+                        healthProvider,
+                      ),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      flex: 4,
+                      child: Column(
                         children: [
-                          Expanded(
-                            flex: 5,
-                            child: _buildStepTracker(
-                              context,
-                              metrics,
-                              settings,
-                              healthProvider,
-                            ),
+                          _buildSleepTracker(
+                            context,
+                            metrics,
+                            settings,
+                            healthProvider,
                           ),
-                          const SizedBox(width: 15),
-                          Expanded(
-                            flex: 4,
-                            child: Column(
-                              children: [
-                                _buildSleepTracker(
-                                  context,
-                                  metrics,
-                                  settings,
-                                  healthProvider,
-                                ),
-                                const SizedBox(height: 15),
-                                _buildMoodTrackerSmall(
-                                  context,
-                                  metrics,
-                                  healthProvider,
-                                ),
-                              ],
-                            ),
+                          const SizedBox(height: 15),
+                          _buildMoodTrackerSmall(
+                            context,
+                            metrics,
+                            healthProvider,
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
-
-                    _buildHydrationCard(
-                      context,
-                      metrics,
-                      settings,
-                      progress,
-                      healthProvider,
-                    ),
-
-                    const SizedBox(height: 20),
-                    _buildWeeklyTrendChart(context, healthProvider),
-
-                    if (settings.exerciseReminder) ...[
-                      const SizedBox(height: 20),
-                      _buildExerciseSuggestion(context),
-                    ],
-
-                    const SizedBox(height: 20),
-                    _buildWellnessCard(context),
-                    const SizedBox(height: 100), // Bottom padding for FAB
                   ],
                 ),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+              const SizedBox(height: 20),
 
-  Widget _glow(Color color) {
-    return Container(
-      height: 300,
-      width: 300,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: [BoxShadow(color: color, blurRadius: 150, spreadRadius: 50)],
+              _buildHydrationCard(
+                context,
+                metrics,
+                settings,
+                progress,
+                healthProvider,
+              ),
+
+              const SizedBox(height: 20),
+              _buildWeeklyTrendChart(context, healthProvider),
+
+              if (settings.exerciseReminder) ...[
+                const SizedBox(height: 20),
+                _buildExerciseSuggestion(context),
+              ],
+
+              const SizedBox(height: 20),
+              _buildWellnessCard(context),
+              const SizedBox(height: 100), // Bottom padding for FAB
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
     final theme = Theme.of(context);
-    // Simple date formatter
+    final colorScheme = theme.colorScheme;
     final now = DateTime.now();
-    final dateStr = "${now.day}/${now.month}/${now.year}"; // Simplified for now
+    final dateStr = "${now.day}/${now.month}/${now.year}";
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,13 +147,13 @@ class _HealthScreenState extends State<HealthScreen> {
           "Your Health",
           style: theme.textTheme.headlineLarge?.copyWith(
             fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onSurface,
+            color: colorScheme.onSurface,
           ),
         ),
         Text(
           "Today, $dateStr",
           style: theme.textTheme.titleMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+            color: colorScheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -210,9 +172,15 @@ class _HealthScreenState extends State<HealthScreen> {
       1.0,
     );
 
-    return GlassBox(
+    return Container(
       padding: const EdgeInsets.all(20.0),
-      borderRadius: 24,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -220,14 +188,31 @@ class _HealthScreenState extends State<HealthScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(Icons.directions_walk, color: Colors.orangeAccent),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orangeAccent.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.directions_walk,
+                  color: Colors.orangeAccent,
+                ),
+              ),
               GestureDetector(
                 onTap: () =>
                     _showStepEntryDialog(context, metrics.steps, provider),
-                child: Icon(
-                  Icons.edit,
-                  size: 16,
-                  color: colorScheme.onSurfaceVariant,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.edit,
+                    size: 16,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ],
@@ -242,8 +227,9 @@ class _HealthScreenState extends State<HealthScreen> {
                 child: CircularProgressIndicator(
                   value: progress,
                   strokeWidth: 10,
-                  backgroundColor: colorScheme.surfaceContainerHighest
-                      .withOpacity(0.3),
+                  backgroundColor: colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.1,
+                  ),
                   valueColor: const AlwaysStoppedAnimation<Color>(
                     Colors.orangeAccent,
                   ),
@@ -270,9 +256,10 @@ class _HealthScreenState extends State<HealthScreen> {
             children: [
               Text(
                 '${metrics.steps}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
                 ),
               ),
               Text(
@@ -303,27 +290,43 @@ class _HealthScreenState extends State<HealthScreen> {
 
     return GestureDetector(
       onTap: () => _showSleepDialog(context, metrics.sleepHours, provider),
-      child: GlassBox(
+      child: Container(
         padding: const EdgeInsets.all(16.0),
-        borderRadius: 24,
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+          ),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Icon(
-                  Icons.nights_stay,
-                  color: Colors.indigoAccent,
-                  size: 20,
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.indigoAccent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.nights_stay,
+                    color: Colors.indigoAccent,
+                    size: 20,
+                  ),
                 ),
-                CircularProgressIndicator(
-                  value: progress,
-                  strokeWidth: 4,
-                  backgroundColor: colorScheme.surfaceContainerHighest
-                      .withOpacity(0.3),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    Colors.indigoAccent,
+                SizedBox(
+                  height: 36,
+                  width: 36,
+                  child: CircularProgressIndicator(
+                    value: progress,
+                    strokeWidth: 4,
+                    backgroundColor: colorScheme.surfaceContainer,
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Colors.indigoAccent,
+                    ),
                   ),
                 ),
               ],
@@ -331,7 +334,11 @@ class _HealthScreenState extends State<HealthScreen> {
             const SizedBox(height: 10),
             Text(
               '${metrics.sleepHours}h',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
             ),
             Text(
               'of ${settings.sleepGoal}h goal',
@@ -355,6 +362,7 @@ class _HealthScreenState extends State<HealthScreen> {
 
     // Pick emotion based on string or default
     String moodEmoji = '😐';
+    String moodLabel = metrics.mood ?? 'Log Mood';
     if (metrics.mood == 'Tired') moodEmoji = '😫';
     if (metrics.mood == 'Okay') moodEmoji = '😐';
     if (metrics.mood == 'Good') moodEmoji = '🙂';
@@ -362,28 +370,43 @@ class _HealthScreenState extends State<HealthScreen> {
     if (metrics.mood == 'Super') moodEmoji = '🤩';
 
     return GestureDetector(
-      onTap: () => _showMoodDialog(context, provider), // New specific dialog
-      child: GlassBox(
+      onTap: () => _showMoodDialog(context, provider),
+      child: Container(
         padding: const EdgeInsets.all(16.0),
-        borderRadius: 24,
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+          ),
+        ),
         child: SizedBox(
           width: double.infinity,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
-                Icons.emoji_emotions_outlined,
-                color: Colors.pinkAccent,
-                size: 20,
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.pinkAccent.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.emoji_emotions_outlined,
+                  color: Colors.pinkAccent,
+                  size: 20,
+                ),
               ),
               const SizedBox(height: 10),
               Text(moodEmoji, style: const TextStyle(fontSize: 24)),
               Text(
-                metrics.mood ?? 'Log Mood',
+                moodLabel,
                 style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
+                  color: moodLabel == 'Log Mood'
+                      ? colorScheme.onSurfaceVariant
+                      : colorScheme.onSurface,
                   fontSize: 12,
-                  fontWeight: metrics.mood == null
+                  fontWeight: moodLabel == 'Log Mood'
                       ? FontWeight.normal
                       : FontWeight.bold,
                 ),
@@ -403,19 +426,26 @@ class _HealthScreenState extends State<HealthScreen> {
     HealthProvider provider,
   ) {
     double tempVal = current;
+    final colorScheme = Theme.of(context).colorScheme;
+
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
+          backgroundColor: colorScheme.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Text("Log Sleep"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 "${tempVal.toStringAsFixed(1)} hours",
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
                 ),
               ),
               Slider(
@@ -423,6 +453,7 @@ class _HealthScreenState extends State<HealthScreen> {
                 min: 0,
                 max: 12,
                 divisions: 24,
+                activeColor: colorScheme.primary,
                 onChanged: (val) => setState(() => tempVal = val),
               ),
             ],
@@ -430,9 +461,12 @@ class _HealthScreenState extends State<HealthScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text("Cancel"),
+              child: Text(
+                "Cancel",
+                style: TextStyle(color: colorScheme.primary),
+              ),
             ),
-            ElevatedButton(
+            FilledButton(
               onPressed: () {
                 provider.updateSleep(tempVal);
                 Navigator.pop(ctx);
@@ -448,10 +482,13 @@ class _HealthScreenState extends State<HealthScreen> {
   void _showMoodDialog(BuildContext context, HealthProvider provider) {
     final moods = ['😫', '😐', '🙂', '😄', '🤩'];
     final labels = ['Tired', 'Okay', 'Good', 'Great', 'Super'];
+    final colorScheme = Theme.of(context).colorScheme;
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("How are you feeling?"),
         content: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -461,7 +498,14 @@ class _HealthScreenState extends State<HealthScreen> {
                 provider.updateMood(labels[index]);
                 Navigator.pop(ctx);
               },
-              child: Text(moods[index], style: const TextStyle(fontSize: 32)),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(moods[index], style: const TextStyle(fontSize: 32)),
+              ),
             );
           }),
         ),
@@ -477,9 +521,16 @@ class _HealthScreenState extends State<HealthScreen> {
     HealthProvider provider,
   ) {
     final colorScheme = Theme.of(context).colorScheme;
-    return GlassBox(
+
+    return Container(
       padding: const EdgeInsets.all(16.0),
-      borderRadius: 24,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
       child: Column(
         children: [
           Row(
@@ -498,7 +549,7 @@ class _HealthScreenState extends State<HealthScreen> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: colorScheme.primary.withOpacity(0.1),
+                  color: colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -513,45 +564,14 @@ class _HealthScreenState extends State<HealthScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          Stack(
-            children: [
-              // Background track
-              Container(
-                height: 24,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: colorScheme.outline.withOpacity(0.1),
-                  ),
-                ),
-              ),
-              // Progress fill
-              if (progress > 0)
-                FractionallySizedBox(
-                  widthFactor: progress,
-                  child: Container(
-                    height: 24,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          colorScheme.primary.withOpacity(0.7),
-                          colorScheme.primary,
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: colorScheme.primary.withOpacity(0.4),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 24,
+              backgroundColor: colorScheme.surfaceContainer,
+              valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+            ),
           ),
           const SizedBox(height: 24),
           Row(
@@ -578,6 +598,7 @@ class _HealthScreenState extends State<HealthScreen> {
     HealthProvider provider,
   ) {
     final colorScheme = Theme.of(context).colorScheme;
+
     return ElevatedButton.icon(
       onPressed: () => provider.addWater(amount),
       icon: Icon(icon, size: 20),
@@ -594,9 +615,16 @@ class _HealthScreenState extends State<HealthScreen> {
 
   Widget _buildWellnessCard(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return GlassBox(
+
+    return Container(
       padding: const EdgeInsets.all(16.0),
-      borderRadius: 24,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -621,7 +649,7 @@ class _HealthScreenState extends State<HealthScreen> {
             Icons.bed_outlined,
             'Sleep Well',
             'Aim for 7-8 hours of sleep.',
-            Colors.purpleAccent, // Keeping distinct for recognition
+            Colors.purpleAccent,
           ),
         ],
       ),
@@ -636,19 +664,22 @@ class _HealthScreenState extends State<HealthScreen> {
     Color color,
   ) {
     final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: colorScheme.surface.withOpacity(0.5),
+        color: colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.2)),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 24),
@@ -660,7 +691,10 @@ class _HealthScreenState extends State<HealthScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
                 Text(
                   subtitle,
@@ -698,9 +732,15 @@ class _HealthScreenState extends State<HealthScreen> {
         .map((m) => m.sleepHours)
         .reduce((a, b) => a > b ? a : b);
 
-    return GlassBox(
+    return Container(
       padding: const EdgeInsets.all(20.0),
-      borderRadius: 24,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -796,7 +836,7 @@ class _HealthScreenState extends State<HealthScreen> {
                     gradient: LinearGradient(
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
-                      colors: [color, color.withOpacity(0.6)],
+                      colors: [color, color.withValues(alpha: 0.6)],
                     ),
                     borderRadius: BorderRadius.circular(6),
                   ),
@@ -806,7 +846,7 @@ class _HealthScreenState extends State<HealthScreen> {
                   days[index],
                   style: TextStyle(
                     fontSize: 10,
-                    color: colorScheme.onSurfaceVariant.withOpacity(0.6),
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -819,43 +859,39 @@ class _HealthScreenState extends State<HealthScreen> {
 
   Widget _buildExerciseSuggestion(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return GlassBox(
+
+    return Container(
       padding: const EdgeInsets.all(16.0),
-      borderRadius: 24,
-      // Using a subtle tint for movement card instead of hard green
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: colorScheme.primaryContainer.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: colorScheme.primary.withOpacity(0.1)),
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Icon(Icons.directions_run_rounded, color: colorScheme.primary),
-                const SizedBox(width: 10),
-                Text(
-                  'Movement Suggestion',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.primary,
-                  ),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(Icons.directions_run_rounded, color: colorScheme.primary),
+              const SizedBox(width: 10),
+              Text(
+                'Movement Suggestion',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.primary,
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'You have been sitting for a while! How about a quick 5-minute walk or some desk stretches?',
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                height: 1.4,
               ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'You have been sitting for a while! How about a quick 5-minute walk or some desk stretches?',
+            style: TextStyle(
+              color: colorScheme.onPrimaryContainer,
+              height: 1.4,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -866,25 +902,32 @@ class _HealthScreenState extends State<HealthScreen> {
     HealthProvider provider,
   ) {
     final controller = TextEditingController(text: currentSteps.toString());
+    final colorScheme = Theme.of(context).colorScheme;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("Enter Steps"),
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.number,
           autofocus: true,
-          decoration: const InputDecoration(
+          style: TextStyle(color: colorScheme.onSurface),
+          decoration: InputDecoration(
             labelText: "Steps",
+            labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
             suffixText: "steps",
+            suffixStyle: TextStyle(color: colorScheme.onSurfaceVariant),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel"),
+            child: Text("Cancel", style: TextStyle(color: colorScheme.primary)),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () {
               final steps = int.tryParse(controller.text) ?? currentSteps;
               provider.updateSteps(steps);
@@ -915,10 +958,13 @@ class _HealthScreenState extends State<HealthScreen> {
       text: settings.reminderInterval.toString(),
     );
     bool exercise = settings.exerciseReminder;
+    final colorScheme = Theme.of(context).colorScheme;
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Health Settings'),
         content: SingleChildScrollView(
           child: Column(
@@ -926,39 +972,55 @@ class _HealthScreenState extends State<HealthScreen> {
             children: [
               TextField(
                 controller: waterGoalController,
-                decoration: const InputDecoration(
+                style: TextStyle(color: colorScheme.onSurface),
+                decoration: InputDecoration(
                   labelText: 'Daily Water Goal (ml)',
+                  labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                 ),
                 keyboardType: TextInputType.number,
               ),
+              const SizedBox(height: 12),
               TextField(
                 controller: stepsGoalController,
-                decoration: const InputDecoration(
+                style: TextStyle(color: colorScheme.onSurface),
+                decoration: InputDecoration(
                   labelText: 'Daily Steps Goal',
+                  labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                 ),
                 keyboardType: TextInputType.number,
               ),
+              const SizedBox(height: 12),
               TextField(
                 controller: sleepGoalController,
-                decoration: const InputDecoration(
+                style: TextStyle(color: colorScheme.onSurface),
+                decoration: InputDecoration(
                   labelText: 'Daily Sleep Goal (hours)',
+                  labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                 ),
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
               ),
+              const SizedBox(height: 12),
               TextField(
                 controller: reminderController,
-                decoration: const InputDecoration(
+                style: TextStyle(color: colorScheme.onSurface),
+                decoration: InputDecoration(
                   labelText: 'Reminder Interval (min)',
+                  labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                 ),
                 keyboardType: TextInputType.number,
               ),
+              const SizedBox(height: 12),
               StatefulBuilder(
                 builder: (context, setState) {
                   return SwitchListTile(
-                    title: const Text('Exercise Suggestions'),
+                    title: Text(
+                      'Exercise Suggestions',
+                      style: TextStyle(color: colorScheme.onSurface),
+                    ),
                     value: exercise,
+                    activeColor: colorScheme.primary,
                     onChanged: (val) {
                       setState(() => exercise = val);
                     },
@@ -971,9 +1033,9 @@ class _HealthScreenState extends State<HealthScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text('Cancel', style: TextStyle(color: colorScheme.primary)),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () {
               final newSettings = HealthSettings(
                 id: settings.id,

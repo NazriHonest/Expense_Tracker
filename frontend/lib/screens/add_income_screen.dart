@@ -1,4 +1,3 @@
-import 'package:expense_tracker/widgets/glass_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -119,89 +118,81 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       resizeToAvoidBottomInset: true,
-      body: Stack(
-        children: [
-          Positioned(
-            top: -50,
-            right: -50,
-            child: _glow(incomeAccent.withOpacity(isDark ? 0.1 : 0.05)),
-          ),
-          CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              _buildAppBar(colorScheme),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildAmountHeader(colorScheme, incomeAccent),
-                          const SizedBox(height: 40),
-                          _sectionLabel("SOURCE DETAILS", colorScheme),
-                          _buildInputTile(
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          _buildAppBar(colorScheme),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildAmountHeader(colorScheme, incomeAccent),
+                      const SizedBox(height: 40),
+                      _sectionLabel("SOURCE DETAILS", colorScheme),
+                      const SizedBox(height: 8),
+                      _buildInputTile(
+                        colorScheme,
+                        icon: Icons.edit_document,
+                        child: TextFormField(
+                          controller: _titleController,
+                          style: TextStyle(color: colorScheme.onSurface),
+                          textInputAction: TextInputAction.next,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: _inputDeco(
+                            "Where did this come from?",
                             colorScheme,
-                            incomeAccent,
-                            icon: Icons.edit_document,
-                            child: TextFormField(
-                              controller: _titleController,
-                              style: TextStyle(color: colorScheme.onSurface),
-                              textInputAction: TextInputAction.next,
-                              textCapitalization: TextCapitalization.sentences,
-                              decoration: _inputDeco(
-                                "Where did this come from?",
-                                colorScheme,
-                              ),
-                              validator: (v) => (v == null || v.trim().isEmpty)
-                                  ? "Required"
-                                  : null,
-                            ),
                           ),
-                          const SizedBox(height: 16),
-                          _buildCategoryPicker(colorScheme, incomeAccent),
-                          const SizedBox(height: 16),
-                          _buildWalletPicker(colorScheme, incomeAccent),
-                          const SizedBox(height: 16),
-                          _buildDatePicker(colorScheme, incomeAccent),
-                          const SizedBox(height: 16),
-                          _sectionLabel("ADDITIONAL INFO", colorScheme),
-                          _buildInputTile(
-                            colorScheme,
-                            incomeAccent,
-                            icon: Icons.notes_rounded,
-                            child: TextFormField(
-                              controller: _notesController,
-                              style: TextStyle(color: colorScheme.onSurface),
-                              maxLines: 2,
-                              textCapitalization: TextCapitalization.sentences,
-                              decoration: _inputDeco(
-                                "Add a note (Optional)",
-                                colorScheme,
-                              ),
-                            ),
-                          ),
-                        ],
+                          validator: (v) => (v == null || v.trim().isEmpty)
+                              ? "Required"
+                              : null,
+                        ),
                       ),
-                    ),
-                  ]),
+                      const SizedBox(height: 16),
+                      _buildCategoryPicker(colorScheme),
+                      const SizedBox(height: 16),
+                      _buildWalletPicker(colorScheme),
+                      const SizedBox(height: 16),
+                      _buildDatePicker(colorScheme),
+                      const SizedBox(height: 16),
+                      _sectionLabel("ADDITIONAL INFO", colorScheme),
+                      const SizedBox(height: 8),
+                      _buildInputTile(
+                        colorScheme,
+                        icon: Icons.notes_rounded,
+                        child: TextFormField(
+                          controller: _notesController,
+                          style: TextStyle(color: colorScheme.onSurface),
+                          maxLines: 3,
+                          minLines: 1,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: _inputDeco(
+                            "Add a note (Optional)",
+                            colorScheme,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ]),
+            ),
           ),
         ],
       ),
       bottomNavigationBar: SafeArea(
-        child: _buildFloatingAction(colorScheme, incomeAccent),
+        child: _buildFloatingAction(isDark, colorScheme, incomeAccent),
       ),
     );
   }
 
   Widget _buildAppBar(ColorScheme colorScheme) {
     return SliverAppBar(
-      backgroundColor: Colors.transparent, // Transparent for glow effect
+      backgroundColor: colorScheme.surface,
       pinned: true,
       elevation: 0,
       leading: IconButton(
@@ -228,7 +219,7 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
           Text(
             "CASH IN",
             style: TextStyle(
-              color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+              color: colorScheme.onSurfaceVariant,
               letterSpacing: 1.5,
               fontSize: 10,
               fontWeight: FontWeight.bold,
@@ -261,7 +252,7 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
                 border: InputBorder.none,
                 hintText: "0.00",
                 hintStyle: TextStyle(
-                  color: colorScheme.onSurface.withOpacity(0.1),
+                  color: colorScheme.onSurface.withValues(alpha: 0.1),
                 ),
               ),
             ),
@@ -270,7 +261,7 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
             width: 40,
             height: 2,
             decoration: BoxDecoration(
-              color: accent.withOpacity(0.4),
+              color: accent,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -279,19 +270,23 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
     );
   }
 
-  // UPDATED: Replaced Container with GlassBox
   Widget _buildInputTile(
-    ColorScheme colorScheme,
-    Color accent, {
+    ColorScheme colorScheme, {
     required IconData icon,
     required Widget child,
   }) {
-    return GlassBox(
+    return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      borderRadius: 18,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
       child: Row(
         children: [
-          Icon(icon, color: accent, size: 20),
+          Icon(icon, color: colorScheme.primary, size: 20),
           const SizedBox(width: 14),
           Expanded(child: child),
         ],
@@ -299,10 +294,9 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
     );
   }
 
-  Widget _buildCategoryPicker(ColorScheme colorScheme, Color accent) {
+  Widget _buildCategoryPicker(ColorScheme colorScheme) {
     return _buildInputTile(
       colorScheme,
-      accent,
       icon: Icons.grid_view_rounded,
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
@@ -310,7 +304,7 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
           isExpanded: true,
           dropdownColor: colorScheme.surface,
           icon: Icon(
-            Icons.expand_more_rounded,
+            Icons.keyboard_arrow_down_rounded,
             color: colorScheme.onSurfaceVariant,
           ),
           items: _categories.entries
@@ -343,7 +337,7 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
     );
   }
 
-  Widget _buildDatePicker(ColorScheme colorScheme, Color accent) {
+  Widget _buildDatePicker(ColorScheme colorScheme) {
     return GestureDetector(
       onTap: () async {
         final d = await showDatePicker(
@@ -351,12 +345,17 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
           initialDate: _selectedDate,
           firstDate: DateTime(2020),
           lastDate: DateTime.now(),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(colorScheme: colorScheme),
+              child: child!,
+            );
+          },
         );
         if (d != null) setState(() => _selectedDate = d);
       },
       child: _buildInputTile(
         colorScheme,
-        accent,
         icon: Icons.calendar_month_rounded,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 18),
@@ -369,20 +368,18 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
     );
   }
 
-  Widget _buildWalletPicker(ColorScheme colorScheme, Color accent) {
+  Widget _buildWalletPicker(ColorScheme colorScheme) {
     return Consumer<WalletProvider>(
       builder: (context, walletProv, _) {
         if (walletProv.wallets.isEmpty) {
-          return const SizedBox.shrink(); // Hide if no wallets are set up yet
+          return const SizedBox.shrink();
         }
 
-        // Auto-select default/first wallet if none selected
         if (_selectedWalletId == null && widget.income == null) {
           final defaultWallet = walletProv.wallets.firstWhere(
             (w) => w.isDefault,
             orElse: () => walletProv.wallets.first,
           );
-          // Post-frame to avoid unawaited state changing during build
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && _selectedWalletId == null) {
               setState(() => _selectedWalletId = defaultWallet.id);
@@ -392,7 +389,6 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
 
         return _buildInputTile(
           colorScheme,
-          accent,
           icon: Icons.account_balance_wallet_rounded,
           child: DropdownButtonHideUnderline(
             child: DropdownButton<int>(
@@ -427,7 +423,11 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
     );
   }
 
-  Widget _buildFloatingAction(ColorScheme colorScheme, Color accent) {
+  Widget _buildFloatingAction(
+    bool isDark,
+    ColorScheme colorScheme,
+    Color accent,
+  ) {
     final double bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(24, 8, 24, bottomInset > 0 ? 10 : 16),
@@ -435,20 +435,20 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
         onPressed: _isSaving ? null : _saveIncome,
         style: ElevatedButton.styleFrom(
           backgroundColor: accent,
-          foregroundColor: Colors.black,
+          foregroundColor: isDark ? Colors.black : Colors.white,
           minimumSize: const Size(double.infinity, 60),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
           ),
-          elevation: 0,
+          elevation: 2,
         ),
         child: _isSaving
-            ? const SizedBox(
+            ? SizedBox(
                 height: 20,
                 width: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.black,
+                  color: isDark ? Colors.black : Colors.white,
                 ),
               )
             : Text(
@@ -466,7 +466,7 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
       InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
-          color: colorScheme.onSurfaceVariant.withOpacity(0.4),
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
           fontSize: 15,
         ),
         border: InputBorder.none,
@@ -475,24 +475,15 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
       );
 
   Widget _sectionLabel(String t, ColorScheme colorScheme) => Padding(
-    padding: const EdgeInsets.only(bottom: 10, left: 4),
+    padding: const EdgeInsets.only(bottom: 4, left: 4),
     child: Text(
       t,
       style: TextStyle(
-        color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+        color: colorScheme.primary,
         fontSize: 10,
         fontWeight: FontWeight.bold,
         letterSpacing: 1.2,
       ),
-    ),
-  );
-
-  Widget _glow(Color c) => Container(
-    width: 200,
-    height: 200,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      boxShadow: [BoxShadow(color: c, blurRadius: 90, spreadRadius: 40)],
     ),
   );
 }

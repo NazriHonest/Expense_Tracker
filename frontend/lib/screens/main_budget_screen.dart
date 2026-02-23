@@ -1,4 +1,3 @@
-import 'package:expense_tracker/widgets/glass_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
@@ -25,60 +24,46 @@ class MainBudgetScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final colorScheme = theme.colorScheme;
 
-    return Stack(
-      children: [
-        // Background Glows - Cohesive with the rest of the app
-        Positioned(
-          top: -100,
-          right: -50,
-          child: _glow(colorScheme.primary.withOpacity(isDark ? 0.12 : 0.05)),
+    return Scaffold(
+      backgroundColor: colorScheme.surface,
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 20),
+            _buildHeader(context, theme, colorScheme),
+            const SizedBox(height: 20),
+            Expanded(
+              child: budgetProv.isLoading
+                  ? _buildShimmerLoading(context)
+                  : budgetProv.budgets.isEmpty
+                  ? _buildEmptyState(theme, colorScheme)
+                  : ListView.builder(
+                      itemCount: budgetProv.budgets.length,
+                      padding: const EdgeInsets.only(bottom: 150),
+                      physics: const BouncingScrollPhysics(),
+                      itemBuilder: (context, index) {
+                        final budget = budgetProv.budgets[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Dismissible(
+                            key: Key(budget.id.toString()),
+                            direction: DismissDirection.endToStart,
+                            onDismissed: (_) =>
+                                budgetProv.deleteBudget(budget.id!),
+                            background: _buildDeleteBackground(colorScheme),
+                            child: _buildBudgetProgressCard(context, budget),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
-        Positioned(
-          bottom: 50,
-          left: -80,
-          child: _glow(colorScheme.secondary.withOpacity(isDark ? 0.08 : 0.03)),
-        ),
-
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              _buildHeader(context, theme, colorScheme),
-              const SizedBox(height: 20),
-              Expanded(
-                child: budgetProv.isLoading
-                    ? _buildShimmerLoading(context)
-                    : budgetProv.budgets.isEmpty
-                    ? _buildEmptyState(theme, colorScheme)
-                    : ListView.builder(
-                        itemCount: budgetProv.budgets.length,
-                        padding: const EdgeInsets.only(bottom: 150),
-                        physics: const BouncingScrollPhysics(),
-                        itemBuilder: (context, index) {
-                          final budget = budgetProv.budgets[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: Dismissible(
-                              key: Key(budget.id.toString()),
-                              direction: DismissDirection.endToStart,
-                              onDismissed: (_) =>
-                                  budgetProv.deleteBudget(budget.id!),
-                              background: _buildDeleteBackground(colorScheme),
-                              child: _buildBudgetProgressCard(context, budget),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -103,12 +88,12 @@ class MainBudgetScreen extends StatelessWidget {
             Text(
               "Daily spending allowance calculated",
               style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurface.withOpacity(0.5),
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ],
         ),
-        _circularGlassIconButton(context, Icons.add_rounded, onAddBudget),
+        _circularIconButton(context, Icons.add_rounded, onAddBudget),
       ],
     );
   }
@@ -116,7 +101,6 @@ class MainBudgetScreen extends StatelessWidget {
   Widget _buildBudgetProgressCard(BuildContext context, dynamic budget) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
 
     final double progress = (budget.spent / budget.limit).clamp(0.0, 1.0);
     final double remaining = budget.limit - budget.spent;
@@ -129,129 +113,97 @@ class MainBudgetScreen extends StatelessWidget {
         ? colorScheme.error
         : (progress > 0.8 ? Colors.orangeAccent : colorScheme.primary);
 
-    return GlassBox(
-      borderRadius: 28,
-      child: Container(
-        height: 180,
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withOpacity(0.05)
-                : colorScheme.primary.withOpacity(0.1),
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                budget.category,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              if (!isOver)
+                _buildDailyBadge(colorScheme, stateColor, dailyAllowance),
+            ],
           ),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  budget.category,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                if (!isOver) _buildDailyBadge(stateColor, dailyAllowance),
-              ],
+          const SizedBox(height: 16),
+          // Progress Track - Fixed contrast
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 10,
+              backgroundColor: colorScheme.onSurface.withValues(alpha: 0.1),
+              valueColor: AlwaysStoppedAnimation<Color>(stateColor),
             ),
-            const Spacer(),
-            // Progress Track
-            Stack(
-              children: [
-                Container(
-                  height: 10,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: colorScheme.onSurface.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                FractionallySizedBox(
-                  widthFactor: progress,
-                  child: Container(
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: stateColor,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: stateColor.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _amountLabel(
-                  "Spent",
-                  budget.spent,
-                  colorScheme.onSurface.withOpacity(0.6),
-                  theme,
-                ),
-                _amountLabel(
-                  isOver ? "Over" : "Remaining",
-                  remaining.abs(),
-                  stateColor,
-                  theme,
-                  isBold: true,
-                ),
-              ],
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _amountLabel(
+                "Spent",
+                budget.spent,
+                colorScheme.onSurfaceVariant,
+                theme,
+              ),
+              _amountLabel(
+                isOver ? "Over" : "Remaining",
+                remaining.abs(),
+                stateColor,
+                theme,
+                isBold: true,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _glow(Color color) => Container(
-    height: 300,
-    width: 300,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      boxShadow: [BoxShadow(color: color, blurRadius: 120, spreadRadius: 60)],
-    ),
-  );
-
-  Widget _circularGlassIconButton(
+  Widget _circularIconButton(
     BuildContext context,
     IconData icon,
     VoidCallback onTap,
   ) {
-    return GlassBox(
-      borderRadius: 45,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          height: 45,
-          width: 45,
-          color: Colors.transparent, // Ensures the gesture hits
-          child: Icon(
-            icon,
-            color: Theme.of(context).colorScheme.primary,
-            size: 24,
-          ),
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 45,
+        width: 45,
+        decoration: BoxDecoration(
+          color: colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(12),
         ),
+        child: Icon(icon, color: colorScheme.onPrimary, size: 24),
       ),
     );
   }
 
   // --- SUPPORTING UI ---
 
-  Widget _buildDailyBadge(Color color, double amount) {
+  Widget _buildDailyBadge(ColorScheme colorScheme, Color color, double amount) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Text(
         "${currencyFormat.format(amount)} / day left",
@@ -271,6 +223,8 @@ class MainBudgetScreen extends StatelessWidget {
     ThemeData theme, {
     bool isBold = false,
   }) {
+    final colorScheme = theme.colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -279,6 +233,7 @@ class MainBudgetScreen extends StatelessWidget {
           style: theme.textTheme.bodySmall?.copyWith(
             fontSize: 10,
             fontWeight: FontWeight.w500,
+            color: colorScheme.onSurfaceVariant,
           ),
         ),
         Text(
@@ -300,13 +255,13 @@ class MainBudgetScreen extends StatelessWidget {
           Icon(
             Icons.auto_graph_rounded,
             size: 48,
-            color: colorScheme.onSurface.withOpacity(0.1),
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
             "Set a limit to start tracking",
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurface.withOpacity(0.3),
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -315,19 +270,19 @@ class MainBudgetScreen extends StatelessWidget {
   }
 
   Widget _buildShimmerLoading(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return ListView.builder(
       itemCount: 3,
       itemBuilder: (context, index) => Shimmer.fromColors(
-        baseColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.05),
-        highlightColor: Theme.of(
-          context,
-        ).colorScheme.onSurface.withOpacity(0.02),
+        baseColor: colorScheme.onSurface.withValues(alpha: 0.05),
+        highlightColor: colorScheme.onSurface.withValues(alpha: 0.15),
         child: Container(
           height: 160,
           margin: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
+            color: colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(20),
           ),
         ),
       ),
@@ -338,13 +293,14 @@ class MainBudgetScreen extends StatelessWidget {
     return Container(
       alignment: Alignment.centerRight,
       padding: const EdgeInsets.only(right: 25),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: colorScheme.error.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(28),
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Icon(
         Icons.delete_forever_rounded,
-        color: colorScheme.error,
+        color: colorScheme.onErrorContainer,
         size: 28,
       ),
     );

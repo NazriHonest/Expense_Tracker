@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/category_service.dart';
-import '../widgets/glass_widgets.dart';
 
 class ManageCategoriesScreen extends StatefulWidget {
   const ManageCategoriesScreen({super.key});
@@ -55,15 +54,23 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
       await CategoryService.refreshCategories(); // Refresh global list
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Category Created!")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("Category Created!"),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: $e"),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -75,11 +82,24 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
       await ApiService().deleteCategory(id);
       await CategoryService.refreshCategories();
       setState(() {}); // Rebuild to update list
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("Category deleted"),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: $e"),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }
@@ -87,65 +107,118 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final customCats = CategoryService.customCategories;
 
     return Scaffold(
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: const Text("Manage Categories"),
-        backgroundColor: Colors.transparent,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
+        titleTextStyle: TextStyle(
+          color: colorScheme.onSurface,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
       ),
       body: Column(
         children: [
           // Create Section
-          GlassBox(
+          Container(
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+              ),
+            ),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
+                  Text(
                     "Add New Category",
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                      fontSize: 16,
+                    ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 16),
                   TextFormField(
                     controller: _nameController,
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: colorScheme.onSurface),
+                    decoration: InputDecoration(
                       hintText: "Category Name (e.g. 'Crypto')",
+                      hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+                      filled: true,
+                      fillColor: colorScheme.surfaceContainer,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                     validator: (v) => v!.isEmpty ? "Required" : null,
                   ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 16),
                   SizedBox(
                     height: 50,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: _availableIcons.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
                       itemBuilder: (ctx, i) => GestureDetector(
                         onTap: () =>
                             setState(() => _selectedIcon = _availableIcons[i]),
-                        child: CircleAvatar(
-                          backgroundColor: _selectedIcon == _availableIcons[i]
-                              ? theme.colorScheme.primary
-                              : Colors.grey.withOpacity(0.2),
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: _selectedIcon == _availableIcons[i]
+                                ? colorScheme.primary
+                                : colorScheme.surfaceContainer,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: _selectedIcon == _availableIcons[i]
+                                  ? colorScheme.primary
+                                  : colorScheme.outlineVariant.withValues(
+                                      alpha: 0.2,
+                                    ),
+                            ),
+                          ),
                           child: Icon(
                             _availableIcons[i],
-                            color: Colors.white,
-                            size: 18,
+                            color: _selectedIcon == _availableIcons[i]
+                                ? colorScheme.onPrimary
+                                : colorScheme.onSurfaceVariant,
+                            size: 20,
                           ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 15),
-                  ElevatedButton(
+                  const SizedBox(height: 16),
+                  FilledButton(
                     onPressed: _isSubmitting ? null : _createCategory,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                     child: _isSubmitting
-                        ? const CircularProgressIndicator()
+                        ? SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: colorScheme.onPrimary,
+                            ),
+                          )
                         : const Text("Create Category"),
                   ),
                 ],
@@ -154,41 +227,85 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
           ),
 
           const Divider(),
-          const Padding(
-            padding: EdgeInsets.only(left: 20, bottom: 10),
+          Padding(
+            padding: const EdgeInsets.only(left: 20, bottom: 10, top: 10),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 "YOUR CUSTOM CATEGORIES",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: colorScheme.primary,
+                  letterSpacing: 1.2,
+                ),
               ),
             ),
           ),
 
           Expanded(
             child: customCats.isEmpty
-                ? const Center(child: Text("No custom categories yet."))
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.category_outlined,
+                          size: 48,
+                          color: colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "No custom categories yet.",
+                          style: TextStyle(color: colorScheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  )
                 : ListView.builder(
                     itemCount: customCats.length,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemBuilder: (ctx, i) {
                       final cat = customCats[i];
-                      return Card(
-                        color: Colors.white.withOpacity(0.05),
+                      return Container(
                         margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          leading: Icon(
-                            IconData(
-                              cat['icon_code'],
-                              fontFamily: 'MaterialIcons',
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: colorScheme.outlineVariant.withValues(
+                              alpha: 0.2,
                             ),
-                            color: Color(cat['color_value']),
                           ),
-                          title: Text(cat['name']),
+                        ),
+                        child: ListTile(
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Color(
+                                cat['color_value'],
+                              ).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              IconData(
+                                cat['icon_code'],
+                                fontFamily: 'MaterialIcons',
+                              ),
+                              color: Color(cat['color_value']),
+                              size: 20,
+                            ),
+                          ),
+                          title: Text(
+                            cat['name'],
+                            style: TextStyle(color: colorScheme.onSurface),
+                          ),
                           trailing: IconButton(
-                            icon: const Icon(
-                              Icons.delete,
-                              color: Colors.redAccent,
+                            icon: Icon(
+                              Icons.delete_outline_rounded,
+                              color: colorScheme.error,
                             ),
                             onPressed: () => _deleteCategory(cat['id']),
                           ),

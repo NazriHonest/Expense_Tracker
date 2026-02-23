@@ -17,14 +17,13 @@ class ApiService {
   static AuthProvider? _authProvider;
 
   static const String baseUrl = 'https://finance-tracker-app-0qmt.onrender.com';
-  //static const String baseUrl = 'http://192.168.8.225:8000';
 
   ApiService._internal() {
     _dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
-        connectTimeout: const Duration(seconds: 60),
-        receiveTimeout: const Duration(seconds: 60),
+        connectTimeout: const Duration(seconds: 120),
+        receiveTimeout: const Duration(seconds: 120),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -75,6 +74,10 @@ class ApiService {
       '/auth/register',
       data: {'email': email, 'password': password},
     );
+  }
+
+  Future<String?> getUsername() async {
+    return _authProvider?.userEmail;
   }
 
   // --- Debt Methods ---

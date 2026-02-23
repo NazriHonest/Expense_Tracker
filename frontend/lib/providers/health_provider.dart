@@ -143,10 +143,15 @@ class HealthProvider with ChangeNotifier {
   }
 
   void _scheduleReminders() {
+    String username = _apiService.getUsername() as String;
+
     if (_settings == null) return;
 
     if (_settings!.reminderInterval > 0) {
-      _notificationService.scheduleWaterReminder(_settings!.reminderInterval);
+      _notificationService.scheduleDailyHydration(
+        _settings!.reminderInterval,
+        username,
+      );
     } else {
       _notificationService.cancelAll();
     }

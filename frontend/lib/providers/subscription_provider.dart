@@ -21,6 +21,8 @@ class SubscriptionProvider with ChangeNotifier {
           return sum + sub.amount;
         case SubscriptionFrequency.yearly:
           return sum + (sub.amount / 12);
+
+        // ignore: unreachable_switch_default
         default:
           return sum;
       }

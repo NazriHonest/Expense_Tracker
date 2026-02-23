@@ -3,7 +3,6 @@ import 'package:expense_tracker/providers/expense_provider.dart';
 import 'package:expense_tracker/providers/goal_provider.dart';
 import 'package:expense_tracker/services/pdf_service.dart';
 import 'package:expense_tracker/widgets/financial_summary_list.dart';
-import 'package:expense_tracker/widgets/glass_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -14,7 +13,6 @@ class FinancialReportsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -24,58 +22,59 @@ class FinancialReportsScreen extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
-        backgroundColor: Colors.transparent,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
+        titleTextStyle: TextStyle(
+          color: colorScheme.onSurface,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+        iconTheme: IconThemeData(color: colorScheme.onSurface),
       ),
-      body: Stack(
-        children: [
-          // Background ambiance glow
-          Positioned(
-            top: -50,
-            right: -50,
-            child: _glow(colorScheme.primary.withOpacity(isDark ? 0.1 : 0.05)),
-          ),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            _buildMainBalanceCard(theme, colorScheme),
+            const SizedBox(height: 32),
 
-          SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.all(24),
-            child: Column(
+            // Header for the detailed list
+            Row(
               children: [
-                _buildMainBalanceCard(theme),
-                const SizedBox(height: 32),
-
-                // Header for the detailed list
-                Row(
-                  children: [
-                    const SizedBox(width: 4),
-                    Text(
-                      "BREAKDOWN",
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        letterSpacing: 1.5,
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurface.withOpacity(0.5),
-                      ),
-                    ),
-                  ],
+                const SizedBox(width: 4),
+                Text(
+                  "BREAKDOWN",
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    letterSpacing: 1.5,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
+                  ),
                 ),
-                const SizedBox(height: 12),
-                const FinancialSummaryList(),
-
-                const SizedBox(height: 40),
-                _buildExportSection(theme, context),
-                const SizedBox(height: 20),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            const FinancialSummaryList(),
+
+            const SizedBox(height: 40),
+            _buildExportSection(theme, colorScheme, context),
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildMainBalanceCard(ThemeData theme) {
-    return GlassBox(
-      borderRadius: 24,
+  Widget _buildMainBalanceCard(ThemeData theme, ColorScheme colorScheme) {
+    return Container(
       padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
       child: Column(
         children: [
           Text(
@@ -83,35 +82,49 @@ class FinancialReportsScreen extends StatelessWidget {
             style: theme.textTheme.labelSmall?.copyWith(
               letterSpacing: 2,
               fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
+              color: colorScheme.primary,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             "Financial Health",
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 24),
-          _buildHealthIndicator(theme),
+          _buildHealthIndicator(theme, colorScheme),
         ],
       ),
     );
   }
 
-  Widget _buildHealthIndicator(ThemeData theme) {
-    // Logic could be added here to determine which state is 'active'
-    // based on actual provider data (e.g., if spent > budget, set 'Risk' to active)
+  Widget _buildHealthIndicator(ThemeData theme, ColorScheme colorScheme) {
+    // This would be determined by actual financial data
+    // For now, we'll set "Good" as active based on sample logic
+    final bool isGood = true; // Replace with actual logic
+    final bool isFair = false;
+    final bool isRisk = false;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _healthBit(theme, "Good", Colors.green, true),
-        _healthBit(theme, "Fair", Colors.orange, false),
-        _healthBit(theme, "Risk", Colors.red, false),
+        _healthBit(theme, colorScheme, "Good", Colors.green, isGood),
+        _healthBit(theme, colorScheme, "Fair", Colors.orange, isFair),
+        _healthBit(theme, colorScheme, "Risk", colorScheme.error, isRisk),
       ],
     );
   }
 
-  Widget _healthBit(ThemeData theme, String label, Color color, bool active) {
+  Widget _healthBit(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    String label,
+    Color color,
+    bool active,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Column(
@@ -120,14 +133,14 @@ class FinancialReportsScreen extends StatelessWidget {
             height: 6,
             width: 45,
             decoration: BoxDecoration(
-              color: active ? color : color.withOpacity(0.1),
+              color: active ? color : colorScheme.surfaceContainer,
               borderRadius: BorderRadius.circular(3),
               boxShadow: active
                   ? [
                       BoxShadow(
-                        color: color.withOpacity(0.4),
+                        color: color.withValues(alpha: 0.4),
                         blurRadius: 8,
-                        spreadRadius: 1,
+                        offset: const Offset(0, 2),
                       ),
                     ]
                   : [],
@@ -138,9 +151,7 @@ class FinancialReportsScreen extends StatelessWidget {
             label,
             style: theme.textTheme.labelSmall?.copyWith(
               fontWeight: active ? FontWeight.bold : FontWeight.normal,
-              color: active
-                  ? color
-                  : theme.colorScheme.onSurface.withOpacity(0.3),
+              color: active ? color : colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -148,33 +159,39 @@ class FinancialReportsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildExportSection(ThemeData theme, BuildContext context) {
+  Widget _buildExportSection(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    BuildContext context,
+  ) {
     return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: theme.colorScheme.primary.withOpacity(0.15),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: ElevatedButton.icon(
+      width: double.infinity,
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
+      child: FilledButton(
         onPressed: () => _handleExport(context),
-        icon: const Icon(Icons.auto_awesome_motion_rounded, size: 20),
-        label: const Text(
-          "Generate PDF Report",
-          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: theme.colorScheme.primary,
-          foregroundColor: theme.colorScheme.onPrimary,
+        style: FilledButton.styleFrom(
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
           minimumSize: const Size(double.infinity, 60),
-          elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
+          elevation: 2,
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.picture_as_pdf_rounded, size: 20),
+            SizedBox(width: 10),
+            Text(
+              "Generate PDF Report",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+                fontSize: 16,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -194,19 +211,11 @@ class FinancialReportsScreen extends StatelessWidget {
     );
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Preparing report... Check your downloads."),
+      SnackBar(
+        content: const Text("Preparing report... Check your downloads."),
         behavior: SnackBarBehavior.floating,
+        backgroundColor: Theme.of(context).colorScheme.primary,
       ),
     );
   }
-
-  Widget _glow(Color color) => Container(
-    width: 250,
-    height: 250,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: 50)],
-    ),
-  );
 }

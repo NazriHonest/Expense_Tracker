@@ -1,5 +1,4 @@
 import 'package:expense_tracker/services/category_service.dart';
-import 'package:expense_tracker/widgets/glass_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -9,9 +8,9 @@ import '../models/expense.dart';
 import '../providers/expense_provider.dart';
 import '../providers/budget_provider.dart';
 
-import '../models/subscription.dart'; // Subscription model
-import '../providers/subscription_provider.dart'; // Subscription provider
-import '../services/notification_service.dart'; // Add for local notifications
+import '../models/subscription.dart';
+import '../providers/subscription_provider.dart';
+import '../services/notification_service.dart';
 import '../providers/wallet_provider.dart';
 
 class AddExpenseScreen extends StatefulWidget {
@@ -150,6 +149,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   'Recurring bill created starting on ${DateFormat('MMM d').format(nextDate)}',
                 ),
                 backgroundColor: Theme.of(context).colorScheme.primary,
+                behavior: SnackBarBehavior.floating,
               ),
             );
           }
@@ -220,212 +220,202 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
       resizeToAvoidBottomInset: true,
-      body: Stack(
-        children: [
-          Positioned(
-            top: -50,
-            right: -50,
-            child: _glow(
-              isDark
-                  ? colorScheme.primary.withOpacity(0.1)
-                  : colorScheme.primary.withOpacity(0.05),
-            ),
-          ),
-          CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              _buildAppBar(colorScheme),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildAmountHeader(colorScheme),
-                          const SizedBox(height: 12),
-                          Center(child: _buildBudgetStatus(colorScheme)),
-                          const SizedBox(height: 40),
-                          _sectionLabel("DETAILS", colorScheme),
-                          _buildInputTile(
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          _buildAppBar(colorScheme),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildAmountHeader(colorScheme),
+                      const SizedBox(height: 12),
+                      Center(child: _buildBudgetStatus(colorScheme)),
+                      const SizedBox(height: 40),
+                      _sectionLabel("DETAILS", colorScheme),
+                      const SizedBox(height: 8),
+                      _buildInputTile(
+                        colorScheme,
+                        icon: Icons.edit_note_rounded,
+                        child: TextFormField(
+                          controller: _titleController,
+                          style: TextStyle(color: colorScheme.onSurface),
+                          textInputAction: TextInputAction.next,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: _inputDeco(
+                            "What did you buy?",
                             colorScheme,
-                            icon: Icons.edit_note_rounded,
-                            child: TextFormField(
-                              controller: _titleController,
-                              style: TextStyle(color: colorScheme.onSurface),
-                              textInputAction: TextInputAction.next,
-                              textCapitalization: TextCapitalization.sentences,
-                              decoration: _inputDeco(
-                                "What did you buy?",
-                                colorScheme,
-                              ),
-                              validator: (v) => (v == null || v.trim().isEmpty)
-                                  ? "Required"
-                                  : null,
-                            ),
                           ),
-                          const SizedBox(height: 16),
-                          _buildCategoryPicker(colorScheme),
-                          const SizedBox(height: 16),
-                          _buildWalletPicker(colorScheme),
-                          const SizedBox(height: 16),
-                          _buildDatePicker(colorScheme),
-                          const SizedBox(height: 16),
+                          validator: (v) => (v == null || v.trim().isEmpty)
+                              ? "Required"
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildCategoryPicker(colorScheme),
+                      const SizedBox(height: 16),
+                      _buildWalletPicker(colorScheme),
+                      const SizedBox(height: 16),
+                      _buildDatePicker(colorScheme),
+                      const SizedBox(height: 16),
 
-                          // --- RECURRENCE SECTION ---
-                          if (widget.expense == null) ...[
-                            // Only for new expenses
-                            _sectionLabel("RECURRING PAYMENT", colorScheme),
-                            GlassBox(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              borderRadius: 18,
-                              child: Column(
-                                children: [
-                                  SwitchListTile.adaptive(
-                                    contentPadding: EdgeInsets.zero,
-                                    activeColor: colorScheme.primary,
-                                    title: Text(
-                                      "Repeat this transaction",
-                                      style: TextStyle(
-                                        color: colorScheme.onSurface,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 15,
-                                      ),
+                      // --- RECURRENCE SECTION ---
+                      if (widget.expense == null) ...[
+                        const SizedBox(height: 8),
+                        _sectionLabel("RECURRING PAYMENT", colorScheme),
+                        const SizedBox(height: 8),
+                        Card(
+                          elevation: 2,
+                          shadowColor: colorScheme.shadow,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                SwitchListTile.adaptive(
+                                  contentPadding: EdgeInsets.zero,
+                                  activeColor: colorScheme.primary,
+                                  title: Text(
+                                    "Repeat this transaction",
+                                    style: TextStyle(
+                                      color: colorScheme.onSurface,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
                                     ),
-                                    subtitle: Text(
-                                      "Automatically adds to 'Recurring Bills'",
-                                      style: TextStyle(
-                                        color: colorScheme.onSurfaceVariant,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    value: _isRecurring,
-                                    onChanged: (val) =>
-                                        setState(() => _isRecurring = val),
                                   ),
+                                  subtitle: Text(
+                                    "Automatically adds to 'Recurring Bills'",
+                                    style: TextStyle(
+                                      color: colorScheme.onSurfaceVariant,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  value: _isRecurring,
+                                  onChanged: (val) =>
+                                      setState(() => _isRecurring = val),
+                                ),
 
-                                  if (_isRecurring) ...[
-                                    const Divider(height: 20),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          "Frequency",
-                                          style: TextStyle(
-                                            color: colorScheme.onSurface,
-                                            fontWeight: FontWeight.w500,
-                                          ),
+                                if (_isRecurring) ...[
+                                  const Divider(height: 24),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        "Frequency",
+                                        style: TextStyle(
+                                          color: colorScheme.onSurface,
+                                          fontWeight: FontWeight.w500,
                                         ),
-                                        DropdownButton<SubscriptionFrequency>(
-                                          value: _frequency,
-                                          dropdownColor: colorScheme
-                                              .surfaceContainerHighest,
-                                          underline: const SizedBox(),
-                                          icon: Icon(
-                                            Icons.keyboard_arrow_down_rounded,
-                                            color: colorScheme.primary,
-                                          ),
-                                          items: SubscriptionFrequency.values
-                                              .map((f) {
-                                                String label = f
-                                                    .toString()
-                                                    .split('.')
-                                                    .last;
-                                                label =
-                                                    label[0].toUpperCase() +
-                                                    label.substring(1);
-                                                return DropdownMenuItem(
-                                                  value: f,
-                                                  child: Text(
-                                                    label,
-                                                    style: TextStyle(
-                                                      color:
-                                                          colorScheme.onSurface,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                );
-                                              })
-                                              .toList(),
-                                          onChanged: (val) {
-                                            if (val != null) {
-                                              setState(() => _frequency = val);
-                                            }
+                                      ),
+                                      DropdownButton<SubscriptionFrequency>(
+                                        value: _frequency,
+                                        dropdownColor:
+                                            colorScheme.surfaceContainerHighest,
+                                        underline: const SizedBox(),
+                                        icon: Icon(
+                                          Icons.keyboard_arrow_down_rounded,
+                                          color: colorScheme.primary,
+                                        ),
+                                        items: SubscriptionFrequency.values.map(
+                                          (f) {
+                                            String label = f
+                                                .toString()
+                                                .split('.')
+                                                .last;
+                                            label =
+                                                label[0].toUpperCase() +
+                                                label.substring(1);
+                                            return DropdownMenuItem(
+                                              value: f,
+                                              child: Text(
+                                                label,
+                                                style: TextStyle(
+                                                  color: colorScheme.onSurface,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            );
                                           },
+                                        ).toList(),
+                                        onChanged: (val) {
+                                          if (val != null) {
+                                            setState(() => _frequency = val);
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.primaryContainer,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.info_outline_rounded,
+                                          size: 16,
+                                          color: colorScheme.primary,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            "Next bill will be due on ${DateFormat('MMM d, yyyy').format(_calculateNextDate(_selectedDate, _frequency))}",
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: colorScheme.primary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 8),
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: colorScheme.primary.withOpacity(
-                                          0.1,
-                                        ),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.info_outline_rounded,
-                                            size: 16,
-                                            color: colorScheme.primary,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              "Next bill will be due on ${DateFormat('MMM d, yyyy').format(_calculateNextDate(_selectedDate, _frequency))}",
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: colorScheme.primary,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                  ],
+                                  ),
                                 ],
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                          ],
-
-                          _buildInputTile(
-                            colorScheme,
-                            icon: Icons.notes_rounded,
-                            child: TextFormField(
-                              controller: _notesController,
-                              style: TextStyle(color: colorScheme.onSurface),
-                              maxLines: null,
-                              textCapitalization: TextCapitalization.sentences,
-                              decoration: _inputDeco(
-                                "Optional notes...",
-                                colorScheme,
-                              ),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
+                      _sectionLabel("NOTES", colorScheme),
+                      const SizedBox(height: 8),
+                      _buildInputTile(
+                        colorScheme,
+                        icon: Icons.notes_rounded,
+                        child: TextFormField(
+                          controller: _notesController,
+                          style: TextStyle(color: colorScheme.onSurface),
+                          maxLines: 3,
+                          minLines: 1,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: _inputDeco(
+                            "Optional notes...",
+                            colorScheme,
+                          ),
+                        ),
                       ),
-                    ),
-                  ]),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ]),
+            ),
           ),
         ],
       ),
@@ -435,8 +425,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   Widget _buildAppBar(ColorScheme colorScheme) {
     return SliverAppBar(
-      backgroundColor:
-          Colors.transparent, // Changed to transparent for glass feel
+      backgroundColor: colorScheme.surface,
       elevation: 0,
       pinned: true,
       leading: IconButton(
@@ -463,7 +452,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           Text(
             "AMOUNT",
             style: TextStyle(
-              color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+              color: colorScheme.onSurfaceVariant,
               letterSpacing: 1.5,
               fontSize: 10,
               fontWeight: FontWeight.bold,
@@ -496,7 +485,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 border: InputBorder.none,
                 hintText: "0.00",
                 hintStyle: TextStyle(
-                  color: colorScheme.onSurface.withOpacity(0.1),
+                  color: colorScheme.onSurface.withValues(alpha: 0.1),
                 ),
               ),
             ),
@@ -505,7 +494,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             width: 40,
             height: 2,
             decoration: BoxDecoration(
-              color: colorScheme.primary.withOpacity(0.4),
+              color: colorScheme.primary,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -514,15 +503,18 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     );
   }
 
-  // UPDATED: Now uses Global GlassBox
   Widget _buildInputTile(
     ColorScheme colorScheme, {
     required IconData icon,
     required Widget child,
   }) {
-    return GlassBox(
+    return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      borderRadius: 18,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.2)),
+      ),
       child: Row(
         children: [
           Icon(icon, color: colorScheme.primary, size: 20),
@@ -582,6 +574,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           initialDate: _selectedDate,
           firstDate: DateTime(2020),
           lastDate: DateTime.now(),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(colorScheme: colorScheme),
+              child: child!,
+            );
+          },
         );
         if (d != null) setState(() => _selectedDate = d);
       },
@@ -603,16 +601,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     return Consumer<WalletProvider>(
       builder: (context, walletProv, _) {
         if (walletProv.wallets.isEmpty) {
-          return const SizedBox.shrink(); // Hide if no wallets are set up yet
+          return const SizedBox.shrink();
         }
 
-        // Auto-select default/first wallet if none selected
         if (_selectedWalletId == null && widget.expense == null) {
           final defaultWallet = walletProv.wallets.firstWhere(
             (w) => w.isDefault,
             orElse: () => walletProv.wallets.first,
           );
-          // Post-frame to avoid unawaited state changing during build
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && _selectedWalletId == null) {
               setState(() => _selectedWalletId = defaultWallet.id);
@@ -664,11 +660,16 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     final entered = double.tryParse(_amountController.text) ?? 0.0;
     final total = status.spent + entered;
     final isOver = total > status.limit;
-    final Color statusColor = isOver ? colorScheme.error : Colors.greenAccent;
+    final Color statusColor = isOver ? colorScheme.error : colorScheme.primary;
 
-    return GlassBox(
+    return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      borderRadius: 20,
+      decoration: BoxDecoration(
+        color:
+            (isOver ? colorScheme.errorContainer : colorScheme.primaryContainer)
+                .withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -706,9 +707,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           foregroundColor: colorScheme.onPrimary,
           minimumSize: const Size(double.infinity, 60),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
           ),
-          elevation: 0,
+          elevation: 2,
         ),
         child: _isSubmitting
             ? SizedBox(
@@ -731,7 +732,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
-          color: colorScheme.onSurfaceVariant.withOpacity(0.4),
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
           fontSize: 15,
         ),
         border: InputBorder.none,
@@ -740,24 +741,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       );
 
   Widget _sectionLabel(String t, ColorScheme colorScheme) => Padding(
-    padding: const EdgeInsets.only(bottom: 10, left: 4),
+    padding: const EdgeInsets.only(bottom: 4, left: 4),
     child: Text(
       t,
       style: TextStyle(
-        color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+        color: colorScheme.primary,
         fontSize: 10,
         fontWeight: FontWeight.bold,
         letterSpacing: 1.2,
       ),
-    ),
-  );
-
-  Widget _glow(Color c) => Container(
-    width: 250,
-    height: 250,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      boxShadow: [BoxShadow(color: c, blurRadius: 100, spreadRadius: 50)],
     ),
   );
 }

@@ -1,4 +1,3 @@
-import 'package:expense_tracker/widgets/glass_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -71,9 +70,9 @@ class _RegisterScreenState extends State<RegisterScreen>
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Account Created! Please sign in.'),
-            backgroundColor: Colors.greenAccent,
+          SnackBar(
+            content: const Text('Account Created! Please sign in.'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -84,7 +83,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString()),
-            backgroundColor: Colors.redAccent,
+            backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -96,57 +95,37 @@ class _RegisterScreenState extends State<RegisterScreen>
   Widget build(BuildContext context) {
     final isLoading = Provider.of<AuthProvider>(context).isLoading;
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: Stack(
-        children: [
-          // Background Glows
-          Positioned(
-            top: -50,
-            right: -50,
-            child: _glow(
-              theme.colorScheme.primary.withOpacity(isDark ? 0.15 : 0.08),
-            ),
-          ),
-          Positioned(
-            bottom: -50,
-            left: -50,
-            child: _glow(
-              theme.colorScheme.secondary.withOpacity(isDark ? 0.1 : 0.05),
-            ),
-          ),
+      backgroundColor: colorScheme.surface,
+      body: SafeArea(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: Center(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Column(
+                children: [
+                  _buildHeader(theme, colorScheme),
+                  const SizedBox(height: 40),
 
-          SafeArea(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: Center(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 28),
-                  child: Column(
-                    children: [
-                      _buildHeader(theme),
-                      const SizedBox(height: 40),
+                  // Registration Form
+                  _buildForm(isLoading, theme, colorScheme),
 
-                      // Applied Global GlassBox here
-                      _buildGlassForm(isLoading, theme),
-
-                      const SizedBox(height: 30),
-                      _buildFooter(isLoading, theme),
-                    ],
-                  ),
-                ),
+                  const SizedBox(height: 30),
+                  _buildFooter(isLoading, theme, colorScheme),
+                ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildHeader(ThemeData theme) {
+  Widget _buildHeader(ThemeData theme, ColorScheme colorScheme) {
     return Column(
       children: [
         Container(
@@ -154,44 +133,49 @@ class _RegisterScreenState extends State<RegisterScreen>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: LinearGradient(
-              colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
+              colors: [colorScheme.primary, colorScheme.secondary],
             ),
             boxShadow: [
               BoxShadow(
-                color: theme.colorScheme.primary.withOpacity(0.3),
+                color: colorScheme.primary.withValues(alpha: 0.3),
                 blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
           child: const Icon(Icons.bolt_rounded, size: 45, color: Colors.white),
         ),
         const SizedBox(height: 24),
-        const Text(
+        Text(
           'Get Started',
           style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.w900,
             letterSpacing: -1,
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           'Create your account in seconds',
-          style: TextStyle(
-            fontSize: 16,
-            color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
-          ),
+          style: TextStyle(fontSize: 16, color: colorScheme.onSurfaceVariant),
         ),
       ],
     );
   }
 
-  Widget _buildGlassForm(bool isLoading, ThemeData theme) {
+  Widget _buildForm(bool isLoading, ThemeData theme, ColorScheme colorScheme) {
     final strength = _getPasswordStrength(_passwordController.text);
 
-    return GlassBox(
-      borderRadius: 30,
+    return Container(
       padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
       child: Form(
         key: _formKey,
         child: Column(
@@ -199,6 +183,7 @@ class _RegisterScreenState extends State<RegisterScreen>
           children: [
             _buildField(
               theme: theme,
+              colorScheme: colorScheme,
               controller: _emailController,
               label: "Email Address",
               icon: Icons.alternate_email_rounded,
@@ -208,6 +193,7 @@ class _RegisterScreenState extends State<RegisterScreen>
             const SizedBox(height: 20),
             _buildField(
               theme: theme,
+              colorScheme: colorScheme,
               controller: _passwordController,
               label: "Password",
               icon: Icons.lock_outline_rounded,
@@ -226,25 +212,35 @@ class _RegisterScreenState extends State<RegisterScreen>
                     Text(
                       "Strength: ",
                       style: TextStyle(
-                        color: theme.textTheme.bodySmall?.color?.withOpacity(
-                          0.5,
-                        ),
+                        color: colorScheme.onSurfaceVariant,
                         fontSize: 12,
                       ),
                     ),
-                    Text(
-                      strength ?? "",
-                      style: TextStyle(
-                        color: _getStrengthColor(strength),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _getStrengthColor(
+                          strength,
+                        ).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        strength ?? "",
+                        style: TextStyle(
+                          color: _getStrengthColor(strength),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
             const SizedBox(height: 35),
-            _buildSubmitButton(isLoading, theme),
+            _buildSubmitButton(isLoading, theme, colorScheme),
           ],
         ),
       ),
@@ -253,6 +249,7 @@ class _RegisterScreenState extends State<RegisterScreen>
 
   Widget _buildField({
     required ThemeData theme,
+    required ColorScheme colorScheme,
     required TextEditingController controller,
     required String label,
     required IconData icon,
@@ -269,13 +266,11 @@ class _RegisterScreenState extends State<RegisterScreen>
       obscureText: isPassword ? obscure : false,
       onChanged: onChanged,
       keyboardType: type,
+      style: TextStyle(color: colorScheme.onSurface),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(
-          icon,
-          size: 20,
-          color: theme.colorScheme.primary.withOpacity(0.7),
-        ),
+        labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+        prefixIcon: Icon(icon, size: 20, color: colorScheme.primary),
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
@@ -283,18 +278,18 @@ class _RegisterScreenState extends State<RegisterScreen>
                       ? Icons.visibility_off_outlined
                       : Icons.visibility_outlined,
                   size: 20,
+                  color: colorScheme.onSurfaceVariant,
                 ),
                 onPressed: onToggle,
               )
             : null,
         filled: true,
-        fillColor: theme.brightness == Brightness.dark
-            ? Colors.white.withOpacity(0.03)
-            : Colors.black.withOpacity(0.03),
+        fillColor: colorScheme.surfaceContainer,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 18),
       ),
       validator: (val) {
         if (val == null || val.isEmpty) return "Field required";
@@ -304,19 +299,23 @@ class _RegisterScreenState extends State<RegisterScreen>
     );
   }
 
-  Widget _buildSubmitButton(bool isLoading, ThemeData theme) {
+  Widget _buildSubmitButton(
+    bool isLoading,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return Container(
       height: 58,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         gradient: LinearGradient(
-          colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
+          colors: [colorScheme.primary, colorScheme.secondary],
         ),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withOpacity(0.2),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            color: colorScheme.primary.withValues(alpha: 0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -344,26 +343,30 @@ class _RegisterScreenState extends State<RegisterScreen>
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1,
+                  fontSize: 16,
                 ),
               ),
       ),
     );
   }
 
-  Widget _buildFooter(bool isLoading, ThemeData theme) {
+  Widget _buildFooter(
+    bool isLoading,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return TextButton(
       onPressed: isLoading ? null : () => Navigator.pop(context),
+      style: TextButton.styleFrom(foregroundColor: colorScheme.primary),
       child: RichText(
         text: TextSpan(
           text: "Already have an account? ",
-          style: TextStyle(
-            color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
-          ),
+          style: TextStyle(color: colorScheme.onSurfaceVariant),
           children: [
             TextSpan(
               text: 'Sign In',
               style: TextStyle(
-                color: theme.colorScheme.primary,
+                color: colorScheme.primary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -372,13 +375,4 @@ class _RegisterScreenState extends State<RegisterScreen>
       ),
     );
   }
-
-  Widget _glow(Color color) => Container(
-    width: 300,
-    height: 300,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      boxShadow: [BoxShadow(color: color, blurRadius: 120, spreadRadius: 40)],
-    ),
-  );
 }

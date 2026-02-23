@@ -33,16 +33,16 @@ class GlassBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.08)
-              : Colors.black.withOpacity(0.05),
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.black.withValues(alpha: 0.05),
         ),
         // Subtle gradient makes the glass look more realistic
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            (isDark ? Colors.white : Colors.black).withOpacity(0.05),
-            (isDark ? Colors.white : Colors.black).withOpacity(0.02),
+            (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
+            (isDark ? Colors.white : Colors.black).withValues(alpha: 0.02),
           ],
         ),
       ),

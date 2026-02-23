@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/wallet.dart';
 import '../providers/wallet_provider.dart';
-import '../widgets/glass_widgets.dart';
 import 'add_wallet_screen.dart';
 
 class ManageWalletsScreen extends StatelessWidget {
@@ -13,12 +12,11 @@ class ManageWalletsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
         title: Text(
           "Manage Wallets",
@@ -30,42 +28,51 @@ class ManageWalletsScreen extends StatelessWidget {
         centerTitle: true,
         iconTheme: IconThemeData(color: colorScheme.onSurface),
       ),
-      body: Stack(
-        children: [
-          Positioned(
-            top: -50,
-            right: -50,
-            child: _glow(colorScheme.primary.withOpacity(isDark ? 0.15 : 0.05)),
-          ),
-          Consumer<WalletProvider>(
-            builder: (context, walletProv, _) {
-              if (walletProv.isLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
+      body: Consumer<WalletProvider>(
+        builder: (context, walletProv, _) {
+          if (walletProv.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-              if (walletProv.wallets.isEmpty) {
-                return Center(
-                  child: Text(
-                    "No wallets yet.\nAdd one to track specific accounts!",
-                    textAlign: TextAlign.center,
+          if (walletProv.wallets.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.account_balance_wallet_outlined,
+                    size: 64,
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "No wallets yet.",
                     style: TextStyle(
-                      color: colorScheme.onSurface.withOpacity(0.5),
+                      color: colorScheme.onSurface,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                );
-              }
+                  const SizedBox(height: 8),
+                  Text(
+                    "Add one to track specific accounts!",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            );
+          }
 
-              return ListView.builder(
-                padding: const EdgeInsets.all(20),
-                itemCount: walletProv.wallets.length,
-                itemBuilder: (context, index) {
-                  final wallet = walletProv.wallets[index];
-                  return _buildWalletCard(context, wallet);
-                },
-              );
+          return ListView.builder(
+            padding: const EdgeInsets.all(20),
+            itemCount: walletProv.wallets.length,
+            itemBuilder: (context, index) {
+              final wallet = walletProv.wallets[index];
+              return _buildWalletCard(context, wallet);
             },
-          ),
-        ],
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -75,13 +82,16 @@ class ManageWalletsScreen extends StatelessWidget {
           );
         },
         backgroundColor: colorScheme.primary,
-        child: Icon(Icons.add, color: colorScheme.onPrimary),
+        foregroundColor: colorScheme.onPrimary,
+        elevation: 2,
+        child: const Icon(Icons.add),
       ),
     );
   }
 
   Widget _buildWalletCard(BuildContext context, Wallet wallet) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final colorFormat = NumberFormat.simpleCurrency();
 
     return Dismissible(
@@ -92,10 +102,13 @@ class ManageWalletsScreen extends StatelessWidget {
         padding: const EdgeInsets.only(right: 20),
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: Colors.redAccent.withOpacity(0.1),
+          color: colorScheme.errorContainer,
           borderRadius: BorderRadius.circular(20),
         ),
-        child: const Icon(Icons.delete_outline, color: Colors.redAccent),
+        child: Icon(
+          Icons.delete_outline_rounded,
+          color: colorScheme.onErrorContainer,
+        ),
       ),
       onDismissed: (_) {
         Provider.of<WalletProvider>(
@@ -110,16 +123,28 @@ class ManageWalletsScreen extends StatelessWidget {
             MaterialPageRoute(builder: (_) => AddWalletScreen(wallet: wallet)),
           );
         },
-        child: GlassBox(
+        child: Container(
           padding: const EdgeInsets.all(16),
           margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+            ),
+          ),
           child: Row(
             children: [
-              CircleAvatar(
-                backgroundColor: Color(wallet.colorValue).withOpacity(0.2),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Color(wallet.colorValue).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 child: Icon(
                   IconData(wallet.iconCode, fontFamily: 'MaterialIcons'),
                   color: Color(wallet.colorValue),
+                  size: 24,
                 ),
               ),
               const SizedBox(width: 16),
@@ -131,27 +156,28 @@ class ManageWalletsScreen extends StatelessWidget {
                       children: [
                         Text(
                           wallet.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                         if (wallet.isDefault) ...[
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
+                              horizontal: 8,
+                              vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withOpacity(0.1),
+                              color: colorScheme.primaryContainer,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               "Default",
                               style: TextStyle(
                                 fontSize: 10,
-                                color: theme.colorScheme.primary,
+                                color: colorScheme.primary,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -164,26 +190,20 @@ class ManageWalletsScreen extends StatelessWidget {
                       colorFormat.format(wallet.balance),
                       style: TextStyle(
                         fontSize: 14,
-                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Colors.grey),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: colorScheme.onSurfaceVariant,
+              ),
             ],
           ),
         ),
       ),
     );
   }
-
-  Widget _glow(Color c) => Container(
-    width: 300,
-    height: 300,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      boxShadow: [BoxShadow(color: c, blurRadius: 100, spreadRadius: 40)],
-    ),
-  );
 }

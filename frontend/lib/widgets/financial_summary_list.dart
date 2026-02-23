@@ -115,7 +115,7 @@ class FinancialSummaryList extends StatelessWidget {
           Icon(
             icon,
             size: 20,
-            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
           ),
           const SizedBox(width: 16),
           Expanded(child: Text(label, style: theme.textTheme.bodyMedium)),

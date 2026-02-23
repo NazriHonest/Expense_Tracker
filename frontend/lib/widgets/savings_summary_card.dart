@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:expense_tracker/screens/add_goal_screen.dart';
 import 'package:expense_tracker/screens/goal_details_screen.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +18,7 @@ class _SavingsSummaryCardState extends State<SavingsSummaryCard> {
     final goalProv = Provider.of<GoalProvider>(context);
     final goals = goalProv.goals;
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
 
     if (goalProv.isLoading && goals.isEmpty) {
       return const Padding(
@@ -40,10 +39,10 @@ class _SavingsSummaryCardState extends State<SavingsSummaryCard> {
               Text(
                 "SAVINGS GOALS",
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blueGrey,
-                  letterSpacing: 1.1,
+                  letterSpacing: 1.2,
+                  color: colorScheme.primary,
                 ),
               ),
               if (goals.isNotEmpty)
@@ -51,7 +50,14 @@ class _SavingsSummaryCardState extends State<SavingsSummaryCard> {
                   onPressed: () {
                     /* Navigate to All Goals */
                   },
-                  child: const Text("See All", style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: colorScheme.primary,
+                    textStyle: const TextStyle(fontSize: 12),
+                    minimumSize: Size.zero,
+                    padding: EdgeInsets.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text("See All"),
                 ),
             ],
           ),
@@ -59,55 +65,79 @@ class _SavingsSummaryCardState extends State<SavingsSummaryCard> {
 
         // Goals List or Empty State
         goals.isEmpty
-            ? _buildEmptyState(context, isDark)
+            ? _buildEmptyState(context)
             : SizedBox(
-                height: 150,
+                height: 140, // Reduced from 180 to 140
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  clipBehavior:
-                      Clip.none, // Allows glass shadow/glow to breathe
+                  clipBehavior: Clip.none,
                   itemCount: goals.length,
-                  itemBuilder: (ctx, i) =>
-                      _GoalMiniCard(goal: goals[i], isDark: isDark),
+                  itemBuilder: (ctx, i) => _GoalMiniCard(goal: goals[i]),
                 ),
               ),
       ],
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, bool isDark) {
+  Widget _buildEmptyState(BuildContext context) {
     final theme = Theme.of(context);
-    return _glassContainer(
-      isDark: isDark,
+    final colorScheme = theme.colorScheme;
+
+    return GestureDetector(
       onTap: () => Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (context) => const AddGoalScreen())),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-            child: Icon(
-              Icons.add_chart_rounded,
-              color: theme.colorScheme.primary,
-              size: 20,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12), // Reduced from 16 to 12
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8), // Reduced from 10 to 8
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(
+                  10,
+                ), // Reduced from 12 to 10
+              ),
+              child: Icon(
+                Icons.add_chart_rounded,
+                color: colorScheme.primary,
+                size: 18, // Reduced from 20 to 18
+              ),
             ),
-          ),
-          const SizedBox(width: 15),
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "No active goals",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              Text(
-                "Tap to set your first target",
-                style: TextStyle(fontSize: 12, color: Colors.blueGrey),
-              ),
-            ],
-          ),
-        ],
+            const SizedBox(width: 12), // Reduced from 16 to 12
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "No active goals",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13, // Reduced from 14 to 13
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "Tap to set your first target",
+                  style: TextStyle(
+                    fontSize: 11, // Reduced from 12 to 11
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -115,68 +145,89 @@ class _SavingsSummaryCardState extends State<SavingsSummaryCard> {
 
 class _GoalMiniCard extends StatelessWidget {
   final SavingsGoal goal;
-  final bool isDark;
-  const _GoalMiniCard({required this.goal, required this.isDark});
+
+  const _GoalMiniCard({required this.goal});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-    return Container(
-      width: 150,
-      margin: const EdgeInsets.only(right: 12),
-      child: _glassContainer(
-        isDark: isDark,
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => GoalDetailsScreen(goalId: goal.id!),
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => GoalDetailsScreen(goalId: goal.id!),
+        ),
+      ),
+      child: Container(
+        width: 140, // Reduced from 160 to 140
+        margin: const EdgeInsets.only(right: 8), // Reduced from 12 to 8
+        padding: const EdgeInsets.all(12), // Reduced from 16 to 12
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(14), // Slightly reduced from 16
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.2),
           ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          //mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            CircleAvatar(
-              backgroundColor: goal.color.withOpacity(0.1),
-              radius: 16,
-              child: Icon(Icons.savings_rounded, color: goal.color, size: 16),
+            // Icon with colored background
+            Container(
+              padding: const EdgeInsets.all(6), // Reduced from 8 to 6
+              decoration: BoxDecoration(
+                color: goal.color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8), // Reduced from 12 to 8
+              ),
+              child: Icon(
+                Icons.savings_rounded,
+                color: goal.color,
+                size: 16, // Reduced from 18 to 16
+              ),
             ),
-            const SizedBox(height: 13),
+
+            // Title
             Text(
               goal.title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13, // Reduced from 14 to 13
+                color: colorScheme.onSurface,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 13),
+
+            // Progress Bar
             Column(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(2),
                   child: LinearProgressIndicator(
-                    value: goal.progress,
-                    backgroundColor: theme.colorScheme.onSurface.withOpacity(
-                      0.05,
-                    ),
+                    value: goal.progress.clamp(0.0, 1.0),
+                    backgroundColor: colorScheme.surfaceContainer,
                     color: goal.color,
-                    minHeight: 5,
+                    minHeight: 4, // Reduced from 6 to 4
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4), // Reduced from 6 to 4
+                // Stats Row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       "${(goal.progress * 100).toStringAsFixed(0)}%",
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: Colors.blueGrey,
+                      style: TextStyle(
+                        fontSize: 10, // Reduced from 11 to 10
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                     Text(
                       "\$${goal.currentAmount.toStringAsFixed(0)}",
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 10, // Reduced from 11 to 10
                         fontWeight: FontWeight.bold,
                         color: goal.color,
                       ),
@@ -190,36 +241,4 @@ class _GoalMiniCard extends StatelessWidget {
       ),
     );
   }
-}
-
-// Global helper that uses your exact MainNavigationScreen style
-Widget _glassContainer({
-  required Widget child,
-  required bool isDark,
-  VoidCallback? onTap,
-}) {
-  return GestureDetector(
-    onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withOpacity(0.08)
-              : Colors.black.withOpacity(0.05),
-        ),
-        color: isDark
-            ? Colors.white.withOpacity(0.05)
-            : Colors.black.withOpacity(0.02),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: child,
-        ),
-      ),
-    ),
-  );
 }

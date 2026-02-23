@@ -1,9 +1,9 @@
 import 'package:expense_tracker/providers/auth_provider.dart';
+import 'package:expense_tracker/screens/debt_tracking_screen.dart';
 import 'package:expense_tracker/screens/financial_reports_screen.dart';
 import 'package:expense_tracker/screens/manage_categories_screen.dart';
 import 'package:expense_tracker/screens/data_export_screen.dart';
 import 'package:expense_tracker/screens/manage_wallets_screen.dart';
-import 'package:expense_tracker/widgets/glass_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart' show Provider;
@@ -19,168 +19,161 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
 
     final auth = Provider.of<AuthProvider>(context);
     final email = auth.userEmail ?? "User Account";
 
-    return Stack(
-      children: [
-        // --- 1. Background Glows ---
-        Positioned(
-          top: -50,
-          right: -80,
-          child: _glow(colorScheme.primary.withOpacity(isDark ? 0.15 : 0.08)),
-        ),
-        Positioned(
-          bottom: 100,
-          left: -80,
-          child: _glow(colorScheme.secondary.withOpacity(isDark ? 0.1 : 0.05)),
-        ),
-
-        // --- 2. Content ---
-        SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(24, 60, 24, 150),
-          child: Column(
-            children: [
-              // --- AVATAR SECTION ---
-              _buildAnimatedAvatar(theme),
-              const SizedBox(height: 20),
-              Text(
-                email,
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
-                  color: colorScheme.onSurface,
-                ),
+    return Scaffold(
+      backgroundColor: colorScheme.surface,
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(24, 60, 24, 150),
+        child: Column(
+          children: [
+            // --- AVATAR SECTION ---
+            _buildAnimatedAvatar(theme, colorScheme),
+            const SizedBox(height: 20),
+            Text(
+              email,
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+                color: colorScheme.onSurface,
               ),
-              Text(
-                "Premium Member",
-                style: TextStyle(
-                  color: colorScheme.primary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
+            ),
+            Text(
+              "Premium Member",
+              style: TextStyle(
+                color: colorScheme.primary,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(height: 40),
+            ),
+            const SizedBox(height: 40),
 
-              // --- ANALYTICS & REPORTS GROUP ---
-              _buildSectionHeader(context, "Analytics & Reports"),
-              _buildGlassGroup(context, [
-                _profileAction(
+            // --- ANALYTICS & REPORTS GROUP ---
+            _buildSectionHeader(context, "Analytics & Reports"),
+            _buildCardGroup(context, [
+              _profileAction(
+                context,
+                CupertinoIcons.graph_square_fill,
+                "Financial Summary Report",
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const FinancialReportsScreen(),
+                    ),
+                  );
+                },
+              ),
+              _profileAction(
+                context,
+                Icons.category_rounded,
+                "Manage Categories",
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ManageCategoriesScreen(),
+                    ),
+                  );
+                },
+              ),
+              _profileAction(
+                context,
+                CupertinoIcons.creditcard_fill,
+                "Manage Wallets",
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ManageWalletsScreen(),
+                    ),
+                  );
+                },
+              ),
+              _profileAction(context, Icons.handshake, "Debt Tracking", () {
+                Navigator.push(
                   context,
-                  CupertinoIcons.graph_square_fill,
-                  "Financial Summary Report",
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const FinancialReportsScreen(),
-                      ),
-                    );
-                  },
-                ),
-                _profileAction(
-                  context,
-                  Icons.category_rounded,
-                  "Manage Categories",
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ManageCategoriesScreen(),
-                      ),
-                    );
-                  },
-                ),
-                _profileAction(
-                  context,
-                  CupertinoIcons.creditcard_fill,
-                  "Manage Wallets",
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ManageWalletsScreen(),
-                      ),
-                    );
-                  },
-                ),
-                _profileAction(
-                  context,
-                  CupertinoIcons.arrow_down_doc_fill,
-                  "Export Data (CSV)",
-                  () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const DataExportScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ]),
+                  MaterialPageRoute(
+                    builder: (context) => const DebtTrackingScreen(),
+                  ),
+                );
+              }),
+              _profileAction(
+                context,
+                CupertinoIcons.arrow_down_doc_fill,
+                "Export Data (CSV)",
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const DataExportScreen(),
+                    ),
+                  );
+                },
+              ),
+            ]),
 
-              const SizedBox(height: 30),
+            const SizedBox(height: 30),
 
-              // --- ACCOUNT SETTINGS GROUP ---
-              _buildSectionHeader(context, "Account Settings"),
-              _buildGlassGroup(context, [
-                _buildDarkModeSwitch(context, theme, colorScheme),
-                const Divider(
-                  height: 1,
-                  indent: 20,
-                  endIndent: 20,
-                  thickness: 0.5,
-                ),
-                _profileAction(
-                  context,
-                  CupertinoIcons.person_fill,
-                  "Personal Info",
-                  () {},
-                ),
-                _profileAction(
-                  context,
-                  CupertinoIcons.shield_fill,
-                  "Security",
-                  () {},
-                ),
-                _profileAction(
-                  context,
-                  CupertinoIcons.bell_fill,
-                  "Notifications",
-                  () {},
-                ),
-              ]),
+            // --- ACCOUNT SETTINGS GROUP ---
+            _buildSectionHeader(context, "Account Settings"),
+            _buildCardGroup(context, [
+              _buildDarkModeSwitch(context, theme, colorScheme),
+              const Divider(
+                height: 1,
+                indent: 20,
+                endIndent: 20,
+                thickness: 0.5,
+              ),
+              _profileAction(
+                context,
+                CupertinoIcons.person_fill,
+                "Personal Info",
+                () {},
+              ),
+              _profileAction(
+                context,
+                CupertinoIcons.shield_fill,
+                "Security",
+                () {},
+              ),
+              _profileAction(
+                context,
+                CupertinoIcons.bell_fill,
+                "Notifications",
+                () {},
+              ),
+            ]),
 
-              const SizedBox(height: 30),
+            const SizedBox(height: 30),
 
-              // --- SUPPORT GROUP ---
-              _buildSectionHeader(context, "Support & Legal"),
-              _buildGlassGroup(context, [
-                _profileAction(
-                  context,
-                  CupertinoIcons.question_circle_fill,
-                  "Help Center",
-                  () {},
-                ),
-                _profileAction(
-                  context,
-                  CupertinoIcons.doc_text_fill,
-                  "Privacy Policy",
-                  () {},
-                ),
-              ]),
+            // --- SUPPORT GROUP ---
+            _buildSectionHeader(context, "Support & Legal"),
+            _buildCardGroup(context, [
+              _profileAction(
+                context,
+                CupertinoIcons.question_circle_fill,
+                "Help Center",
+                () {},
+              ),
+              _profileAction(
+                context,
+                CupertinoIcons.doc_text_fill,
+                "Privacy Policy",
+                () {},
+              ),
+            ]),
 
-              const SizedBox(height: 40),
+            const SizedBox(height: 40),
 
-              // --- LOGOUT BUTTON ---
-              _buildLogoutButton(theme),
-            ],
-          ),
+            // --- LOGOUT BUTTON ---
+            _buildLogoutButton(theme, colorScheme),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -197,14 +190,14 @@ class ProfileScreen extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: colorScheme.primary.withOpacity(0.1),
+          color: colorScheme.primaryContainer,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
           themeProv.isDarkMode
               ? Icons.dark_mode_rounded
               : Icons.light_mode_rounded,
-          color: colorScheme.primary,
+          color: colorScheme.onPrimary,
           size: 20,
         ),
       ),
@@ -213,6 +206,7 @@ class ProfileScreen extends StatelessWidget {
         style: theme.textTheme.titleMedium?.copyWith(
           fontSize: 16,
           fontWeight: FontWeight.w600,
+          color: colorScheme.onSurface,
         ),
       ),
       trailing: CupertinoSwitch(
@@ -223,21 +217,18 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGlassGroup(BuildContext context, List<Widget> children) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildCardGroup(BuildContext context, List<Widget> children) {
+    final colorScheme = Theme.of(context).colorScheme;
 
-    return GlassBox(
-      borderRadius: 24,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withOpacity(0.05)
-                : Colors.black.withOpacity(0.05),
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
         ),
-        child: Column(children: children),
       ),
+      child: Column(children: children),
     );
   }
 
@@ -252,6 +243,10 @@ class ProfileScreen extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(24),
+        bottom: Radius.circular(24),
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         child: Row(
@@ -259,10 +254,10 @@ class ProfileScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: colorScheme.onSurface.withOpacity(0.05),
+                color: colorScheme.primaryContainer,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: colorScheme.onSurfaceVariant, size: 20),
+              child: Icon(icon, color: colorScheme.onPrimary, size: 20),
             ),
             const SizedBox(width: 16),
             Text(
@@ -270,12 +265,13 @@ class ProfileScreen extends StatelessWidget {
               style: theme.textTheme.titleMedium?.copyWith(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
+                color: colorScheme.onSurface,
               ),
             ),
             const Spacer(),
             Icon(
               CupertinoIcons.chevron_right,
-              color: colorScheme.onSurface.withOpacity(0.2),
+              color: colorScheme.onSurfaceVariant,
               size: 16,
             ),
           ],
@@ -284,8 +280,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAnimatedAvatar(ThemeData theme) {
-    final colorScheme = theme.colorScheme;
+  Widget _buildAnimatedAvatar(ThemeData theme, ColorScheme colorScheme) {
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -294,23 +289,27 @@ class ProfileScreen extends StatelessWidget {
           height: 120,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.primary.withOpacity(0.3),
-                blurRadius: 30,
-                spreadRadius: 2,
-              ),
-            ],
             gradient: LinearGradient(
               colors: [colorScheme.primary, colorScheme.secondary],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.primary.withValues(alpha: 0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
         ),
-        CircleAvatar(
-          radius: 56,
-          backgroundColor: theme.scaffoldBackgroundColor,
+        Container(
+          width: 112,
+          height: 112,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: colorScheme.surface,
+          ),
           child: Icon(
             CupertinoIcons.person_fill,
             size: 50,
@@ -325,10 +324,7 @@ class ProfileScreen extends StatelessWidget {
             decoration: BoxDecoration(
               color: colorScheme.primary,
               shape: BoxShape.circle,
-              border: Border.all(
-                color: theme.scaffoldBackgroundColor,
-                width: 2,
-              ),
+              border: Border.all(color: colorScheme.surface, width: 2),
             ),
             child: const Icon(Icons.edit, size: 14, color: Colors.white),
           ),
@@ -338,6 +334,8 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildSectionHeader(BuildContext context, String title) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.only(left: 10, bottom: 12),
       child: Align(
@@ -345,7 +343,7 @@ class ProfileScreen extends StatelessWidget {
         child: Text(
           title.toUpperCase(),
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+            color: colorScheme.primary,
             fontSize: 11,
             fontWeight: FontWeight.w900,
             letterSpacing: 1.2,
@@ -355,28 +353,32 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLogoutButton(ThemeData theme) {
-    final colorScheme = theme.colorScheme;
-    return GlassBox(
-      borderRadius: 24,
+  Widget _buildLogoutButton(ThemeData theme, ColorScheme colorScheme) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colorScheme.error.withValues(alpha: 0.2)),
+      ),
       child: InkWell(
         onTap: onLogout,
-        child: Container(
-          width: double.infinity,
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 18),
-          decoration: BoxDecoration(
-            border: Border.all(color: colorScheme.error.withOpacity(0.2)),
-            color: colorScheme.error.withOpacity(0.05),
-          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(CupertinoIcons.power, color: colorScheme.error, size: 20),
+              Icon(
+                CupertinoIcons.power,
+                color: colorScheme.onErrorContainer,
+                size: 20,
+              ),
               const SizedBox(width: 10),
               Text(
                 "Logout",
                 style: TextStyle(
-                  color: colorScheme.error,
+                  color: colorScheme.onErrorContainer,
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
                 ),
@@ -387,13 +389,4 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
-
-  Widget _glow(Color color) => Container(
-    width: 300,
-    height: 300,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: 40)],
-    ),
-  );
 }

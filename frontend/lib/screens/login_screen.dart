@@ -1,4 +1,3 @@
-import 'package:expense_tracker/widgets/glass_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -47,9 +46,10 @@ class _LoginScreenState extends State<LoginScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.redAccent,
+        backgroundColor: Theme.of(context).colorScheme.error,
         content: Text(
           error.contains('401') ? 'Invalid credentials.' : 'Login failed',
+          style: TextStyle(color: Theme.of(context).colorScheme.onError),
         ),
       ),
     );
@@ -59,77 +59,57 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final isLoading = Provider.of<AuthProvider>(context).isLoading;
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: Stack(
-        children: [
-          // 1. Background Glow Orbs
-          Positioned(
-            top: -50,
-            right: -50,
-            child: _glow(
-              theme.colorScheme.primary.withOpacity(isDark ? 0.15 : 0.1),
-            ),
-          ),
-          Positioned(
-            bottom: -50,
-            left: -50,
-            child: _glow(
-              theme.colorScheme.secondary.withOpacity(isDark ? 0.1 : 0.05),
-            ),
-          ),
-
-          // 2. Main Content
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Column(
-                  children: [
-                    _buildLogo(theme),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Welcome Back',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-
-                    // Glass Login Form
-                    _buildGlassForm(isLoading, theme),
-
-                    const SizedBox(height: 24),
-                    _buildFooter(isLoading, theme),
-                  ],
+      backgroundColor: colorScheme.surface,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 28),
+            child: Column(
+              children: [
+                _buildLogo(theme, colorScheme),
+                const SizedBox(height: 24),
+                Text(
+                  'Welcome Back',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 40),
+
+                // Login Form
+                _buildForm(isLoading, theme, colorScheme),
+
+                const SizedBox(height: 24),
+                _buildFooter(isLoading, theme, colorScheme),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildLogo(ThemeData theme) {
+  Widget _buildLogo(ThemeData theme, ColorScheme colorScheme) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
-          colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
+          colors: [colorScheme.primary, colorScheme.secondary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withOpacity(0.3),
+            color: colorScheme.primary.withValues(alpha: 0.3),
             blurRadius: 20,
-            spreadRadius: 2,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -141,10 +121,16 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildGlassForm(bool isLoading, ThemeData theme) {
-    return GlassBox(
-      borderRadius: 30,
+  Widget _buildForm(bool isLoading, ThemeData theme, ColorScheme colorScheme) {
+    return Container(
       padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
       child: Form(
         key: _formKey,
         child: Column(
@@ -154,6 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
               label: "Email Address",
               icon: Icons.alternate_email_rounded,
               theme: theme,
+              colorScheme: colorScheme,
               isLoading: isLoading,
               keyboardType: TextInputType.emailAddress,
             ),
@@ -164,10 +151,11 @@ class _LoginScreenState extends State<LoginScreen> {
               icon: Icons.lock_outline_rounded,
               isPassword: true,
               theme: theme,
+              colorScheme: colorScheme,
               isLoading: isLoading,
             ),
             const SizedBox(height: 32),
-            _buildSubmitButton(isLoading, theme),
+            _buildSubmitButton(isLoading, theme, colorScheme),
           ],
         ),
       ),
@@ -179,6 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
     required String label,
     required IconData icon,
     required ThemeData theme,
+    required ColorScheme colorScheme,
     bool isPassword = false,
     bool isLoading = false,
     TextInputType? keyboardType,
@@ -188,9 +177,11 @@ class _LoginScreenState extends State<LoginScreen> {
       enabled: !isLoading,
       obscureText: isPassword ? _obscurePassword : false,
       keyboardType: keyboardType,
+      style: TextStyle(color: colorScheme.onSurface),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, size: 20, color: theme.colorScheme.primary),
+        labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+        prefixIcon: Icon(icon, size: 20, color: colorScheme.primary),
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
@@ -198,15 +189,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       ? Icons.visibility_off_outlined
                       : Icons.visibility_outlined,
                   size: 20,
+                  color: colorScheme.onSurfaceVariant,
                 ),
                 onPressed: () =>
                     setState(() => _obscurePassword = !_obscurePassword),
               )
             : null,
         filled: true,
-        fillColor: theme.brightness == Brightness.dark
-            ? Colors.white.withOpacity(0.03)
-            : Colors.black.withOpacity(0.03),
+        fillColor: colorScheme.surfaceContainer,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
@@ -218,15 +208,26 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildSubmitButton(bool isLoading, ThemeData theme) {
+  Widget _buildSubmitButton(
+    bool isLoading,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return Container(
       width: double.infinity,
       height: 58,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         gradient: LinearGradient(
-          colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
+          colors: [colorScheme.primary, colorScheme.secondary],
         ),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.primary.withValues(alpha: 0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: ElevatedButton(
         onPressed: isLoading ? null : _submit,
@@ -252,19 +253,24 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
+                  fontSize: 16,
                 ),
               ),
       ),
     );
   }
 
-  Widget _buildFooter(bool isLoading, ThemeData theme) {
+  Widget _buildFooter(
+    bool isLoading,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           "Don't have an account?",
-          style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
+          style: TextStyle(color: colorScheme.onSurfaceVariant),
         ),
         TextButton(
           onPressed: isLoading
@@ -272,24 +278,13 @@ class _LoginScreenState extends State<LoginScreen> {
               : () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const RegisterScreen()),
                 ),
-          child: Text(
+          style: TextButton.styleFrom(foregroundColor: colorScheme.primary),
+          child: const Text(
             "Register",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
-            ),
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
       ],
     );
   }
-
-  Widget _glow(Color color) => Container(
-    width: 300,
-    height: 300,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      boxShadow: [BoxShadow(color: color, blurRadius: 120, spreadRadius: 40)],
-    ),
-  );
 }

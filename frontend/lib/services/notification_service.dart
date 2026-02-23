@@ -91,35 +91,83 @@ class NotificationService {
     );
   }
 
-  Future<void> scheduleWaterReminder(int intervalMinutes) async {
-    for (int i = 0; i < 10; i++) {
-      await flutterLocalNotificationsPlugin.cancel(id: 1000 + i);
+  Future<void> scheduleDailyHydration(
+    int intervalMinutes,
+    String username,
+  ) async {
+    // Cancel previous reminders
+    for (int i = 0; i < 100; i++) {
+      await flutterLocalNotificationsPlugin.cancel(id: 2000 + i);
     }
 
     if (intervalMinutes <= 0) return;
 
     final now = tz.TZDateTime.now(tz.local);
 
-    for (int i = 1; i <= 10; i++) {
-      final scheduledTime = now.add(Duration(minutes: intervalMinutes * i));
-      if (scheduledTime.hour >= 23 || scheduledTime.hour < 7) continue;
+    // Define daily window
+    final startHour = 7;
+    final endHour = 23;
 
-      await flutterLocalNotificationsPlugin.zonedSchedule(
-        id: 1000 + i,
-        title: 'Hydration Reminder',
-        body: 'Time to drink some water!',
-        scheduledDate: scheduledTime,
-        notificationDetails: const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'health_channel',
-            'Health Reminders',
-            channelDescription: 'Reminders for water and breaks',
-            importance: Importance.max,
-            priority: Priority.high,
-          ),
-        ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    int idCounter = 0;
+
+    // Start from today at 7 AM
+    tz.TZDateTime startTime = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      startHour,
+    );
+
+    // If current time is past today's window → start tomorrow
+    if (now.hour >= endHour) {
+      startTime = startTime.add(const Duration(days: 1));
+    }
+
+    // If before 7 AM → schedule from 7 AM today
+    if (now.hour < startHour) {
+      startTime = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        startHour,
       );
+    }
+
+    // Generate reminders for the whole day
+    tz.TZDateTime scheduledTime = startTime;
+
+    final messages = [
+      '$username, time to drink water 💧',
+      'Stay hydrated, $username!',
+      '💧 $username, your body needs water.',
+    ];
+
+    while (scheduledTime.hour < endHour) {
+      if (scheduledTime.isAfter(now)) {
+        await flutterLocalNotificationsPlugin.zonedSchedule(
+          id: 2000 + idCounter,
+          title: 'Hydration Reminder',
+          body: messages[idCounter % messages.length],
+          scheduledDate: scheduledTime,
+          notificationDetails: const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'health_channel',
+              'Health Reminders',
+              channelDescription: 'Daily hydration reminders',
+              importance: Importance.max,
+              priority: Priority.high,
+            ),
+          ),
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          matchDateTimeComponents: DateTimeComponents.time, // 🔁 Repeat daily
+        );
+
+        idCounter++;
+      }
+
+      scheduledTime = scheduledTime.add(Duration(minutes: intervalMinutes));
     }
   }
 

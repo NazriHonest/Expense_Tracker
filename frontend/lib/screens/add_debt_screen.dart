@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../models/debt.dart';
 import '../providers/debt_provider.dart';
-import '../widgets/glass_widgets.dart';
 
 class AddDebtScreen extends StatefulWidget {
   final Debt? debt;
@@ -134,6 +133,7 @@ class _AddDebtScreenState extends State<AddDebtScreen> {
           SnackBar(
             content: Text("Error: ${e.toString()}"),
             backgroundColor: Theme.of(context).colorScheme.error,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -156,190 +156,203 @@ class _AddDebtScreenState extends State<AddDebtScreen> {
 
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: Text(widget.debt != null ? "Edit Record" : "Add Record"),
-        backgroundColor: Colors.transparent,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
+        titleTextStyle: TextStyle(
+          color: colorScheme.onSurface,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
         iconTheme: IconThemeData(color: colorScheme.onSurface),
       ),
-      body: Stack(
-        children: [
-          Positioned(
-            top: -50,
-            left: -50,
-            child: _glow(colorScheme.primary.withOpacity(isDark ? 0.15 : 0.05)),
-          ),
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionLabel("RECORD TYPE", colorScheme),
-                  GlassBox(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<bool>(
-                        value: _isOwedByMe,
-                        isExpanded: true,
-                        dropdownColor: colorScheme.surface,
-                        items: const [
-                          DropdownMenuItem(
-                            value: true,
-                            child: Text("I borrowed money (Debt)"),
-                          ),
-                          DropdownMenuItem(
-                            value: false,
-                            child: Text("I lent money (Loan)"),
-                          ),
-                        ],
-                        onChanged: (v) {
-                          print(
-                            '🟡 [AddDebtScreen] Record type changed to: ${v! ? 'Debt' : 'Loan'}',
-                          );
-                          setState(() => _isOwedByMe = v);
-                        },
-                      ),
-                    ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionLabel("RECORD TYPE", colorScheme),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.2),
                   ),
-                  const SizedBox(height: 24),
-
-                  _buildSectionLabel("DETAILS", colorScheme),
-                  GlassBox(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<bool>(
+                    value: _isOwedByMe,
+                    isExpanded: true,
+                    dropdownColor: colorScheme.surface,
+                    icon: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: colorScheme.onSurfaceVariant,
                     ),
-                    child: TextFormField(
-                      controller: _titleController,
-                      style: TextStyle(color: colorScheme.onSurface),
-                      decoration: _inputDeco(
-                        _isOwedByMe
-                            ? "Who did you borrow from?"
-                            : "Who did you lend to?",
-                        colorScheme,
+                    items: const [
+                      DropdownMenuItem(
+                        value: true,
+                        child: Text("I borrowed money (Debt)"),
                       ),
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) {
-                          print('🟡 [AddDebtScreen] Title validation FAILED');
-                          return "Required";
-                        }
-                        return null;
-                      },
-                      onChanged: (value) =>
-                          print('🟡 [AddDebtScreen] Title changed: "$value"'),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  GlassBox(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    child: TextFormField(
-                      controller: _amountController,
-                      style: TextStyle(color: colorScheme.onSurface),
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
+                      DropdownMenuItem(
+                        value: false,
+                        child: Text("I lent money (Loan)"),
                       ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d+\.?\d{0,2}'),
-                        ),
-                      ],
-                      decoration: _inputDeco("Amount", colorScheme),
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) {
-                          print('🟡 [AddDebtScreen] Amount validation FAILED');
-                          return "Required";
-                        }
-                        return null;
-                      },
-                      onChanged: (value) =>
-                          print('🟡 [AddDebtScreen] Amount changed: "$value"'),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  GestureDetector(
-                    onTap: () async {
-                      print('🟡 [AddDebtScreen] Due date picker opened');
-                      final d = await showDatePicker(
-                        context: context,
-                        initialDate: _dueDate ?? DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime(2050),
+                    ],
+                    onChanged: (v) {
+                      print(
+                        '🟡 [AddDebtScreen] Record type changed to: ${v! ? 'Debt' : 'Loan'}',
                       );
-                      if (d != null) {
-                        print(
-                          '🟡 [AddDebtScreen] Due date selected: ${d.toIso8601String()}',
-                        );
-                        setState(() => _dueDate = d);
-                      } else {
-                        print(
-                          '🟡 [AddDebtScreen] Due date selection cancelled',
-                        );
-                      }
+                      setState(() => _isOwedByMe = v);
                     },
-                    child: GlassBox(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.calendar_month,
-                            color: colorScheme.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 16),
-                          Text(
-                            _dueDate != null
-                                ? DateFormat('MMM d, yyyy').format(_dueDate!)
-                                : "Due Date (Optional)",
-                            style: TextStyle(
-                              color: _dueDate != null
-                                  ? colorScheme.onSurface
-                                  : colorScheme.onSurfaceVariant.withOpacity(
-                                      0.5,
-                                    ),
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
-                  const SizedBox(height: 24),
-
-                  _buildSectionLabel("ADDITIONAL DETAILS", colorScheme),
-                  GlassBox(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    child: TextFormField(
-                      controller: _notesController,
-                      style: TextStyle(color: colorScheme.onSurface),
-                      maxLines: 2,
-                      decoration: _inputDeco("Notes", colorScheme),
-                      onChanged: (value) =>
-                          print('🟡 [AddDebtScreen] Notes changed: "$value"'),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(height: 24),
+
+              _buildSectionLabel("DETAILS", colorScheme),
+              const SizedBox(height: 8),
+              _buildInputTile(
+                icon: Icons.person_outline_rounded,
+                child: TextFormField(
+                  controller: _titleController,
+                  style: TextStyle(color: colorScheme.onSurface),
+                  decoration: _inputDeco(
+                    _isOwedByMe
+                        ? "Who did you borrow from?"
+                        : "Who did you lend to?",
+                    colorScheme,
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      print('🟡 [AddDebtScreen] Title validation FAILED');
+                      return "Required";
+                    }
+                    return null;
+                  },
+                  onChanged: (value) =>
+                      print('🟡 [AddDebtScreen] Title changed: "$value"'),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildInputTile(
+                icon: Icons.attach_money_rounded,
+                child: TextFormField(
+                  controller: _amountController,
+                  style: TextStyle(color: colorScheme.onSurface),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'^\d+\.?\d{0,2}'),
+                    ),
+                  ],
+                  decoration: _inputDeco("Amount", colorScheme),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      print('🟡 [AddDebtScreen] Amount validation FAILED');
+                      return "Required";
+                    }
+                    return null;
+                  },
+                  onChanged: (value) =>
+                      print('🟡 [AddDebtScreen] Amount changed: "$value"'),
+                ),
+              ),
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: () async {
+                  print('🟡 [AddDebtScreen] Due date picker opened');
+                  final d = await showDatePicker(
+                    context: context,
+                    initialDate: _dueDate ?? DateTime.now(),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime(2050),
+                    builder: (context, child) {
+                      return Theme(
+                        data: Theme.of(
+                          context,
+                        ).copyWith(colorScheme: colorScheme),
+                        child: child!,
+                      );
+                    },
+                  );
+                  if (d != null) {
+                    print(
+                      '🟡 [AddDebtScreen] Due date selected: ${d.toIso8601String()}',
+                    );
+                    setState(() => _dueDate = d);
+                  } else {
+                    print('🟡 [AddDebtScreen] Due date selection cancelled');
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_month_rounded,
+                        color: colorScheme.primary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 16),
+                      Text(
+                        _dueDate != null
+                            ? DateFormat('MMM d, yyyy').format(_dueDate!)
+                            : "Due Date (Optional)",
+                        style: TextStyle(
+                          color: _dueDate != null
+                              ? colorScheme.onSurface
+                              : colorScheme.onSurfaceVariant,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              _buildSectionLabel("ADDITIONAL DETAILS", colorScheme),
+              const SizedBox(height: 8),
+              _buildInputTile(
+                icon: Icons.notes_rounded,
+                child: TextFormField(
+                  controller: _notesController,
+                  style: TextStyle(color: colorScheme.onSurface),
+                  maxLines: 3,
+                  minLines: 1,
+                  decoration: _inputDeco("Notes (Optional)", colorScheme),
+                  onChanged: (value) =>
+                      print('🟡 [AddDebtScreen] Notes changed: "$value"'),
+                ),
+              ),
+              const SizedBox(height: 32),
+            ],
           ),
-        ],
+        ),
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
@@ -356,8 +369,9 @@ class _AddDebtScreenState extends State<AddDebtScreen> {
               foregroundColor: colorScheme.onPrimary,
               minimumSize: const Size(double.infinity, 60),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
               ),
+              elevation: 2,
             ),
             child: _isSaving
                 ? const SizedBox(
@@ -381,35 +395,49 @@ class _AddDebtScreenState extends State<AddDebtScreen> {
     );
   }
 
+  // --- Material 3 Input Component ---
+  Widget _buildInputTile({required IconData icon, required Widget child}) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: colorScheme.primary, size: 20),
+          const SizedBox(width: 14),
+          Expanded(child: child),
+        ],
+      ),
+    );
+  }
+
   InputDecoration _inputDeco(String hint, ColorScheme colorScheme) =>
       InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
-          color: colorScheme.onSurfaceVariant.withOpacity(0.4),
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
           fontSize: 15,
         ),
         border: InputBorder.none,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(vertical: 12),
       );
 
   Widget _buildSectionLabel(String t, ColorScheme colorScheme) => Padding(
-    padding: const EdgeInsets.only(bottom: 10, left: 4),
+    padding: const EdgeInsets.only(left: 4),
     child: Text(
       t,
       style: TextStyle(
-        color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+        color: colorScheme.primary,
         fontSize: 10,
         fontWeight: FontWeight.bold,
         letterSpacing: 1.2,
       ),
-    ),
-  );
-
-  Widget _glow(Color c) => Container(
-    width: 300,
-    height: 300,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      boxShadow: [BoxShadow(color: c, blurRadius: 100, spreadRadius: 40)],
     ),
   );
 }

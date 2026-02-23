@@ -51,7 +51,9 @@ class _SplashScreenState extends State<SplashScreen>
               top: -100,
               right: -50,
               child: _glow(
-                theme.colorScheme.primary.withOpacity(isDark ? 0.15 : 0.08),
+                theme.colorScheme.primary.withValues(
+                  alpha: isDark ? 0.15 : 0.08,
+                ),
               ),
             ),
 
@@ -63,10 +65,10 @@ class _SplashScreenState extends State<SplashScreen>
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.1),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: theme.colorScheme.primary.withOpacity(0.2),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Icon(
@@ -99,7 +101,7 @@ class _SplashScreenState extends State<SplashScreen>
                     "Master your money, master your life.",
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       fontStyle: FontStyle.italic,
                       letterSpacing: 0.5,
                     ),
@@ -113,8 +115,8 @@ class _SplashScreenState extends State<SplashScreen>
                     child: LinearProgressIndicator(
                       // Removing 'value' makes it indeterminate (animated)
                       color: theme.colorScheme.primary,
-                      backgroundColor: theme.colorScheme.primary.withOpacity(
-                        0.1,
+                      backgroundColor: theme.colorScheme.primary.withValues(
+                        alpha: 0.1,
                       ),
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -123,7 +125,7 @@ class _SplashScreenState extends State<SplashScreen>
                   Text(
                     "Waking up server...",
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.primary.withOpacity(0.5),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.5),
                     ),
                   ),
                 ],

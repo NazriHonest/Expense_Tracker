@@ -1,10 +1,8 @@
-import 'package:expense_tracker/widgets/glass_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 
-// Services & Providers
 // Services & Providers
 import '../providers/expense_provider.dart';
 import '../providers/budget_provider.dart';
@@ -21,30 +19,24 @@ class AnalyticsScreen extends StatefulWidget {
 class _AnalyticsScreenState extends State<AnalyticsScreen> {
   bool _isLoading = true;
   List<dynamic> _categoryData = [];
-  Map<String, dynamic> _insights = {}; // Re-added variable
-  int _touchedIndex = -1; // Re-added variable
-  String _selectedTimeRange = 'Month'; // Options: Week, Month, Year, All
+  Map<String, dynamic> _insights = {};
+  int _touchedIndex = -1;
+  String _selectedTimeRange = 'Month';
 
   @override
   void initState() {
     super.initState();
-    // No longer need to fetch API analytics separately if we calculate locally
-    // but we can simulate a loading delay or just process immediately
     _isLoading = false;
-
-    // Defer the calculation to the next frame to ensure Provider is available
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _calculateLocalAnalytics();
     });
   }
 
-  // Wrapper for RefreshIndicator
   Future<void> _loadAnalytics() async {
     _calculateLocalAnalytics();
     return Future.value();
   }
 
-  // Recalculate whenever the range changes or expenses update
   void _calculateLocalAnalytics() {
     final expenseProvider = Provider.of<ExpenseProvider>(
       context,
@@ -52,7 +44,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
     final allExpenses = expenseProvider.expenses;
 
-    // 1. Filter Expenses
     final now = DateTime.now();
     List<dynamic> filteredExpenses = allExpenses.where((e) {
       if (_selectedTimeRange == 'All') return true;
@@ -67,7 +58,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       return true;
     }).toList();
 
-    // 2. Aggregate Category Data
     final Map<String, double> catTotals = {};
     for (var e in filteredExpenses) {
       catTotals[e.category] = (catTotals[e.category] ?? 0) + e.amount;
@@ -77,14 +67,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         .map((e) => {'category': e.key, 'total': e.value})
         .toList();
 
-    // 3. Generate Insights
     if (filteredExpenses.isNotEmpty) {
-      // Top Category
       var topCatEntry = catTotals.entries.reduce(
         (a, b) => a.value > b.value ? a : b,
       );
 
-      // Avg Daily
       double totalSum = filteredExpenses.fold(0.0, (sum, e) => sum + e.amount);
       int days = 1;
       if (_selectedTimeRange == 'Week') days = 7;
@@ -93,27 +80,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       }
       if (_selectedTimeRange == 'Year') days = 365;
 
-      // Savings Rate (Mock calculation as Income is separate)
-      // We can fetch IncomeProvider if needed, but for now we might skip or approximate
-
       _insights = {
         'top_category': topCatEntry.key,
         'top_category_amount': topCatEntry.value,
         'average_daily_spending': totalSum / days,
-        // 'savings_rate': ... (Optional: add later if linked with Income)
       };
     } else {
       _insights = {};
       _categoryData = [];
     }
 
-    setState(() {}); // Trigger rebuild
+    setState(() {});
   }
-
-  // Future<void> _loadAnalytics() async { ... } // REMOVED
 
   // --- HEADER SECTION ---
   Widget _buildHeader(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+
     return Column(
       children: [
         Row(
@@ -126,17 +109,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   "Statistics",
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w900,
+                    color: colorScheme.onSurface,
                   ),
                 ),
                 Text(
                   "Detailed spending analysis",
-                  style: theme.textTheme.bodySmall,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
-            GlassIconButton(
-              icon: Icons.picture_as_pdf_rounded,
-              onTap: () {
+            IconButton(
+              icon: Icon(
+                Icons.picture_as_pdf_rounded,
+                color: colorScheme.primary,
+              ),
+              onPressed: () {
                 final expProv = Provider.of<ExpenseProvider>(
                   context,
                   listen: false,
@@ -151,7 +140,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 );
 
                 PdfService.generateFinancialReport(
-                  expenses: expProv.expenses, // Note: passing ALL expenses
+                  expenses: expProv.expenses,
                   totalSpent: expProv.totalSpent,
                   totalSaved: goalProv.goals.fold(
                     0.0,
@@ -177,11 +166,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _buildTimeFilter(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
     final options = ['Week', 'Month', 'Year', 'All'];
+
     return Container(
       height: 40,
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -197,17 +188,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? theme.colorScheme.primary
-                    : Colors.transparent,
+                color: isSelected ? colorScheme.primary : Colors.transparent,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 opt,
                 style: TextStyle(
                   color: isSelected
-                      ? theme.colorScheme.onPrimary
-                      : theme.colorScheme.onSurfaceVariant,
+                      ? colorScheme.onPrimary
+                      : colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),
@@ -219,8 +208,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  // --- TOP CARD: REMAINING TOTAL BUDGET ---
+  // --- REMAINING BUDGET CARD ---
   Widget _buildRemainingBudget(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+
     if (_isLoading) return _buildGenericCardShimmer(theme);
 
     final budgetProv = Provider.of<BudgetProvider>(context);
@@ -242,9 +233,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final daysRemaining = daysInMonth - now.day + 1;
     final dailyAllowance = remaining > 0 ? remaining / daysRemaining : 0.0;
 
-    return GlassBox(
-      padding: const EdgeInsets.all(20),
+    return Container(
       margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -256,15 +254,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 children: [
                   Text(
                     "Remaining Total Budget",
-                    style: theme.textTheme.titleSmall,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   Text(
                     "\$${remaining.toStringAsFixed(2)}",
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w900,
                       color: remaining < 0
-                          ? Colors.redAccent
-                          : theme.colorScheme.primary,
+                          ? colorScheme.error
+                          : colorScheme.primary,
                     ),
                   ),
                 ],
@@ -278,9 +278,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 10,
-              backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+              backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
               valueColor: AlwaysStoppedAnimation<Color>(
-                remaining < 0 ? Colors.redAccent : theme.colorScheme.primary,
+                remaining < 0 ? colorScheme.error : colorScheme.primary,
               ),
             ),
           ),
@@ -290,11 +290,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             children: [
               Text(
                 "Spent: \$${totalSpent.toStringAsFixed(0)}",
-                style: theme.textTheme.labelSmall,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
               Text(
                 "Total Limit: \$${totalLimit.toStringAsFixed(0)}",
-                style: theme.textTheme.labelSmall,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -305,6 +309,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   // --- SAVINGS VS SPENDING ---
   Widget _buildSavingsVsSpending(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+
     if (_isLoading) return _buildGenericCardShimmer(theme);
 
     final expenseProvider = Provider.of<ExpenseProvider>(context);
@@ -324,9 +330,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ? (totalSaved / totalOutflow) * 100
         : 0.0;
 
-    return GlassBox(
-      padding: const EdgeInsets.all(20),
+    return Container(
       margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -343,14 +356,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 theme,
                 "Spent",
                 totalSpent,
-                Colors.redAccent,
+                colorScheme.error,
                 isLeft: true,
               ),
               _buildFlowStat(
                 theme,
                 "Saved",
                 totalSaved,
-                Colors.greenAccent,
+                Colors.green,
                 isLeft: false,
               ),
             ],
@@ -362,7 +375,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 height: 12,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.greenAccent.withOpacity(0.2),
+                  color: Colors.green.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(6),
                 ),
               ),
@@ -371,7 +384,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 child: Container(
                   height: 12,
                   decoration: BoxDecoration(
-                    color: Colors.redAccent,
+                    color: colorScheme.error,
                     borderRadius: BorderRadius.circular(6),
                   ),
                 ),
@@ -384,11 +397,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             children: [
               Text(
                 "${spentPercent.toStringAsFixed(1)}% Expenses",
-                style: theme.textTheme.labelSmall,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
               Text(
                 "${savedPercent.toStringAsFixed(1)}% Saved",
-                style: theme.textTheme.labelSmall,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -399,6 +416,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   // --- SMART INSIGHTS ---
   Widget _buildSmartInsights(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+
     final List<Map<String, dynamic>> insightEntries = [];
     if (!_isLoading && _insights.isNotEmpty) {
       if (_insights['top_category'] != null) {
@@ -407,7 +426,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           'value':
               'You spent most on ${_insights['top_category']} (\$${_insights['top_category_amount'].toStringAsFixed(0)})',
           'icon': Icons.trending_up_rounded,
-          'color': Colors.orangeAccent,
+          'color': Colors.orange,
         });
       }
       if (_insights['average_daily_spending'] != null) {
@@ -416,17 +435,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           'value':
               'Spending \$${_insights['average_daily_spending'].toStringAsFixed(2)} / day',
           'icon': Icons.calendar_today_rounded,
-          'color': Colors.blueAccent,
-        });
-      }
-      if (_insights['savings_rate'] != null) {
-        final rate = (_insights['savings_rate'] as num).toDouble();
-        insightEntries.add({
-          'title': 'Savings Rate',
-          'value':
-              'You saved ${rate.toStringAsFixed(1)}% of your income so far.',
-          'icon': Icons.savings_rounded,
-          'color': rate > 0 ? Colors.tealAccent : Colors.redAccent,
+          'color': Colors.blue,
         });
       }
     }
@@ -444,15 +453,30 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             itemBuilder: (context, index) {
               if (_isLoading) return _buildInsightShimmer(theme);
               final item = insightEntries[index];
-              return GlassBox(
+              return Container(
                 width: 280,
                 margin: const EdgeInsets.only(right: 12, bottom: 8),
                 padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+                  ),
+                ),
                 child: Row(
                   children: [
-                    Icon(
-                      item['icon'] as IconData,
-                      color: item['color'] as Color,
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: (item['color'] as Color).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        item['icon'] as IconData,
+                        color: item['color'] as Color,
+                        size: 24,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -465,12 +489,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: item['color'] as Color,
+                              fontSize: 12,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             item['value'],
-                            style: theme.textTheme.bodySmall,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -488,8 +515,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  // --- CHART: PIE ---
+  // --- PIE CHART ---
   Widget _buildInteractivePieChart(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+
     if (_isLoading) return _buildChartCardShimmer(theme, isPie: true);
 
     final isDark = theme.brightness == Brightness.dark;
@@ -498,10 +527,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       (sum, item) => sum + (item['total'] as num).toDouble(),
     );
 
-    return GlassBox(
-      height: 320,
-      padding: const EdgeInsets.all(20),
+    return Container(
       margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
       child: Column(
         children: [
           _buildCardHeader(
@@ -510,7 +545,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             Icons.pie_chart_outline_rounded,
           ),
           const SizedBox(height: 20),
-          Expanded(
+          SizedBox(
+            height: 220,
             child: Row(
               children: [
                 Expanded(
@@ -567,20 +603,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  // --- CHART: TREND ---
+  // --- BAR CHART ---
   Widget _buildWeeklyBarChart(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+
     if (_isLoading) return _buildChartCardShimmer(theme, isPie: false);
 
     final expenseProvider = Provider.of<ExpenseProvider>(context);
     final now = DateTime.now();
 
-    // Determine data points based on selection
     List<double> trendData = [];
     List<String> labels = [];
     double maxVal = 100;
 
     if (_selectedTimeRange == 'Year') {
-      // Show 12 months
       trendData = List.generate(12, (index) {
         final month = index + 1;
         return expenseProvider.expenses
@@ -589,16 +625,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       });
       labels = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
     } else {
-      // Show last 7 days for 'Week' or 'Month' (simplified for UI fit)
-      // Or better: if Month, show weeks? For simplicity, we stick to "Last 7 active days"
-      // or "Daily" view for current range.
-      // Let's do: Last 7 days view if Week/Month/All for consistency in this widget
-      // OR adapt:
-
-      int daysToShow = _selectedTimeRange == 'Week' ? 7 : 7;
-      // Note: 'Month' view ideally shows ~30 bars which is too crowded.
-      // So we keep "Recent Trend" as last 7 days, unless Year is selected.
-
+      int daysToShow = 7;
       trendData = List.generate(daysToShow, (index) {
         final day = now.subtract(Duration(days: (daysToShow - 1) - index));
         return expenseProvider.expenses
@@ -623,10 +650,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       maxVal = maxVal < 100 ? 100 : (maxVal * 1.2);
     }
 
-    return GlassBox(
-      height: 280,
-      padding: const EdgeInsets.all(20),
+    return Container(
       margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -636,7 +669,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             Icons.bar_chart_rounded,
           ),
           const SizedBox(height: 30),
-          Expanded(
+          SizedBox(
+            height: 180,
             child: BarChart(
               BarChartData(
                 maxY: maxVal,
@@ -644,7 +678,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   show: true,
                   drawVerticalLine: false,
                   getDrawingHorizontalLine: (value) => FlLine(
-                    color: theme.colorScheme.onSurface.withOpacity(0.05),
+                    color: colorScheme.onSurface.withValues(alpha: 0.05),
                     strokeWidth: 1,
                   ),
                 ),
@@ -656,7 +690,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       reservedSize: 30,
                       getTitlesWidget: (v, m) => Text(
                         '\$${v.toInt()}',
-                        style: const TextStyle(fontSize: 8),
+                        style: TextStyle(
+                          fontSize: 8,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ),
@@ -669,7 +706,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             padding: const EdgeInsets.only(top: 8.0),
                             child: Text(
                               labels[v.toInt()],
-                              style: const TextStyle(fontSize: 10),
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           );
                         }
@@ -693,7 +733,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         barRods: [
                           BarChartRodData(
                             toY: e.value,
-                            color: theme.colorScheme.primary,
+                            color: colorScheme.primary,
                             width: _selectedTimeRange == 'Year' ? 8 : 14,
                             borderRadius: BorderRadius.circular(4),
                           ),
@@ -709,8 +749,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  // --- LIST: TOP CATEGORIES ---
+  // --- TOP CATEGORIES LIST ---
   Widget _buildTopCategories(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+
     if (_isLoading) return _buildGenericCardShimmer(theme, height: 200);
 
     final isDark = theme.brightness == Brightness.dark;
@@ -720,9 +762,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ? 1.0
         : (sortedData.first['total'] as num).toDouble();
 
-    return GlassBox(
-      padding: const EdgeInsets.all(20),
+    return Container(
       margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -746,61 +795,71 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  // --- REFINED SHIMMER HELPERS ---
-
+  // --- SHIMMER HELPERS ---
   Widget _buildGenericCardShimmer(ThemeData theme, {double height = 160}) {
+    final colorScheme = theme.colorScheme;
+
     return Shimmer.fromColors(
-      baseColor: theme.colorScheme.onSurface.withOpacity(0.05),
-      highlightColor: theme.colorScheme.onSurface.withOpacity(0.15),
+      baseColor: colorScheme.onSurface.withValues(alpha: 0.05),
+      highlightColor: colorScheme.onSurface.withValues(alpha: 0.15),
       child: Container(
         height: height,
         margin: const EdgeInsets.only(bottom: 20),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(20),
         ),
       ),
     );
   }
 
   Widget _buildInsightShimmer(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+
     return Shimmer.fromColors(
-      baseColor: theme.colorScheme.onSurface.withOpacity(0.05),
-      highlightColor: theme.colorScheme.onSurface.withOpacity(0.15),
+      baseColor: colorScheme.onSurface.withValues(alpha: 0.05),
+      highlightColor: colorScheme.onSurface.withValues(alpha: 0.15),
       child: Container(
         width: 280,
+        height: 110,
         margin: const EdgeInsets.only(right: 12, bottom: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(20),
         ),
       ),
     );
   }
 
   Widget _buildChartCardShimmer(ThemeData theme, {required bool isPie}) {
+    final colorScheme = theme.colorScheme;
+
     return Shimmer.fromColors(
-      baseColor: theme.colorScheme.onSurface.withOpacity(0.05),
-      highlightColor: theme.colorScheme.onSurface.withOpacity(0.15),
+      baseColor: colorScheme.onSurface.withValues(alpha: 0.05),
+      highlightColor: colorScheme.onSurface.withValues(alpha: 0.15),
       child: Container(
         height: isPie ? 320 : 280,
         margin: const EdgeInsets.only(bottom: 20),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
           children: [
             Row(
               children: [
-                Container(width: 100, height: 15, color: Colors.white),
+                Container(
+                  width: 100,
+                  height: 15,
+                  color: colorScheme.onSurface.withValues(alpha: 0.1),
+                ),
                 const Spacer(),
                 Container(
                   width: 20,
                   height: 20,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
+                  decoration: BoxDecoration(
+                    color: colorScheme.onSurface.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -811,8 +870,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               Container(
                 width: 150,
                 height: 150,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
+                decoration: BoxDecoration(
+                  color: colorScheme.onSurface.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
               )
@@ -825,7 +884,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   (i) => Container(
                     width: 15,
                     height: 40 + (i * 10),
-                    color: Colors.white,
+                    color: colorScheme.onSurface.withValues(alpha: 0.1),
                   ),
                 ),
               ),
@@ -836,9 +895,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  // --- OTHER UI HELPERS ---
-
+  // --- UI HELPERS ---
   Widget _buildCardHeader(ThemeData theme, String title, IconData icon) {
+    final colorScheme = theme.colorScheme;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -846,18 +906,21 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           title,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
           ),
         ),
-        Icon(icon, color: theme.colorScheme.primary.withOpacity(0.3)),
+        Icon(icon, color: colorScheme.primary),
       ],
     );
   }
 
   Widget _buildDailyBadge(ThemeData theme, double amount) {
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.1),
+        color: colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -866,11 +929,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             "\$${amount.toStringAsFixed(0)}",
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
+              color: colorScheme.onPrimary,
               fontSize: 13,
             ),
           ),
-          const Text("left / day", style: TextStyle(fontSize: 8)),
+          Text(
+            "left / day",
+            style: TextStyle(
+              fontSize: 8,
+              color: colorScheme.onPrimaryContainer,
+            ),
+          ),
         ],
       ),
     );
@@ -883,12 +952,19 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     Color color, {
     required bool isLeft,
   }) {
+    final colorScheme = theme.colorScheme;
+
     return Column(
       crossAxisAlignment: isLeft
           ? CrossAxisAlignment.start
           : CrossAxisAlignment.end,
       children: [
-        Text(label, style: theme.textTheme.labelSmall),
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
         Text(
           "\$${amount.toStringAsFixed(0)}",
           style: theme.textTheme.titleMedium?.copyWith(
@@ -901,6 +977,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _buildLegendItem(dynamic item, bool isDark, ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -917,7 +995,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           Expanded(
             child: Text(
               item['category'],
-              style: const TextStyle(fontSize: 10),
+              style: TextStyle(fontSize: 10, color: colorScheme.onSurface),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -933,6 +1011,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     Color color,
     ThemeData theme,
   ) {
+    final colorScheme = theme.colorScheme;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -945,16 +1025,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               children: [
                 Text(
                   item['category'],
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
+                    color: colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
                 LinearProgressIndicator(
                   value: amount / maxTotal,
                   minHeight: 4,
-                  backgroundColor: color.withOpacity(0.1),
+                  backgroundColor: color.withValues(alpha: 0.1),
                   valueColor: AlwaysStoppedAnimation(color),
                 ),
               ],
@@ -963,7 +1044,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           const SizedBox(width: 12),
           Text(
             "\$${amount.toStringAsFixed(0)}",
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
+            ),
           ),
         ],
       ),
@@ -971,7 +1055,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Color _getCategoryColor(String category, bool isDark) {
-    // Predefined distinct colors for common categories
     const Map<String, Color> fixedColors = {
       'Food & Dining': Colors.orange,
       'Transportation': Colors.blue,
@@ -989,7 +1072,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       return fixedColors[category]!;
     }
 
-    // Generate a consistent color for other categories based on their name
     final int hash = category.codeUnits.fold(
       0,
       (previous, current) => previous + current,
@@ -1007,10 +1089,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: colorScheme.surface,
       body: RefreshIndicator(
         onRefresh: _loadAnalytics,
+        color: colorScheme.primary,
+        backgroundColor: colorScheme.surface,
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),

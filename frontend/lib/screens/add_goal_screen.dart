@@ -1,4 +1,3 @@
-import 'package:expense_tracker/widgets/glass_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -83,109 +82,102 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      extendBodyBehindAppBar: true,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
-        title: const Text(
+        title: Text(
           "Set New Goal",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: colorScheme.onSurface,
+          ),
         ),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.close_rounded),
+          icon: Icon(Icons.close_rounded, color: colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Stack(
-        children: [
-          // Background Glow based on selected goal color
-          Positioned(
-            top: -50,
-            left: -50,
-            child: _glow(_selectedColor.withOpacity(isDark ? 0.15 : 0.08)),
-          ),
-
-          SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 110, 24, 40),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _sectionLabel("GOAL DETAILS", theme.colorScheme),
-                  const SizedBox(height: 12),
-                  _buildGlassInput(
-                    icon: Icons.edit_note_rounded,
-                    child: TextFormField(
-                      controller: _titleController,
-                      enabled: !_isSaving,
-                      style: const TextStyle(fontSize: 16),
-                      decoration: _inputDeco(
-                        "e.g. New Macbook",
-                        theme.colorScheme,
-                      ),
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? "Required" : null,
-                      textCapitalization: TextCapitalization.sentences,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildGlassInput(
-                    icon: Icons.attach_money_rounded,
-                    child: TextFormField(
-                      controller: _targetController,
-                      enabled: !_isSaving,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: _inputDeco(
-                        "Target Amount",
-                        theme.colorScheme,
-                      ),
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? "Required" : null,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildGlassDatePicker(),
-
-                  const SizedBox(height: 32),
-                  _sectionLabel("CATEGORY", theme.colorScheme),
-                  const SizedBox(height: 12),
-                  _buildCategoryWrap(),
-
-                  const SizedBox(height: 32),
-                  _sectionLabel("THEME COLOR", theme.colorScheme),
-                  const SizedBox(height: 12),
-                  _buildColorPicker(),
-
-                  const SizedBox(height: 48),
-                  _buildSubmitButton(),
-                  const SizedBox(height: 24),
-                ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _sectionLabel("GOAL DETAILS", colorScheme),
+              const SizedBox(height: 12),
+              _buildInputTile(
+                icon: Icons.edit_note_rounded,
+                child: TextFormField(
+                  controller: _titleController,
+                  enabled: !_isSaving,
+                  style: TextStyle(fontSize: 16, color: colorScheme.onSurface),
+                  decoration: _inputDeco("e.g. New Macbook", colorScheme),
+                  validator: (v) =>
+                      (v == null || v.isEmpty) ? "Required" : null,
+                  textCapitalization: TextCapitalization.sentences,
+                ),
               ),
-            ),
+              const SizedBox(height: 16),
+              _buildInputTile(
+                icon: Icons.attach_money_rounded,
+                child: TextFormField(
+                  controller: _targetController,
+                  enabled: !_isSaving,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: _inputDeco("Target Amount", colorScheme),
+                  validator: (v) =>
+                      (v == null || v.isEmpty) ? "Required" : null,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildDatePicker(),
+
+              const SizedBox(height: 32),
+              _sectionLabel("CATEGORY", colorScheme),
+              const SizedBox(height: 12),
+              _buildCategoryWrap(),
+
+              const SizedBox(height: 32),
+              _sectionLabel("THEME COLOR", colorScheme),
+              const SizedBox(height: 12),
+              _buildColorPicker(),
+
+              const SizedBox(height: 48),
+              _buildSubmitButton(),
+              const SizedBox(height: 24),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  // --- Glass UI Components using Global GlassBox ---
+  // --- Material 3 Input Components ---
 
-  Widget _buildGlassInput({required IconData icon, required Widget child}) {
-    return GlassBox(
+  Widget _buildInputTile({required IconData icon, required Widget child}) {
+    return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      borderRadius: 20,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
       child: Row(
         children: [
           Icon(icon, color: _selectedColor, size: 22),
@@ -196,7 +188,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
     );
   }
 
-  Widget _buildGlassDatePicker() {
+  Widget _buildDatePicker() {
     return GestureDetector(
       onTap: _isSaving
           ? null
@@ -206,16 +198,27 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                 initialDate: _targetDate,
                 firstDate: DateTime.now(),
                 lastDate: DateTime.now().add(const Duration(days: 3650)),
+                builder: (context, child) {
+                  return Theme(
+                    data: Theme.of(
+                      context,
+                    ).copyWith(colorScheme: Theme.of(context).colorScheme),
+                    child: child!,
+                  );
+                },
               );
               if (d != null) setState(() => _targetDate = d);
             },
-      child: _buildGlassInput(
+      child: _buildInputTile(
         icon: Icons.calendar_today_rounded,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 18),
           child: Text(
             "Target Date: ${DateFormat('MMM dd, yyyy').format(_targetDate)}",
-            style: const TextStyle(fontSize: 15),
+            style: TextStyle(
+              fontSize: 15,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
         ),
       ),
@@ -223,6 +226,8 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
   }
 
   Widget _buildCategoryWrap() {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Wrap(
       spacing: 10,
       runSpacing: 10,
@@ -232,34 +237,41 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
           onTap: _isSaving
               ? null
               : () => setState(() => _selectedCategory = e.key),
-          child: GlassBox(
-            borderRadius: 16,
-            // Override background color if selected
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
               color: isSelected
-                  ? _selectedColor.withOpacity(0.8)
-                  : Colors.transparent,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isSelected ? Icons.check_circle_outline_rounded : e.value,
-                    size: 18,
-                    color: isSelected ? Colors.white : _selectedColor,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    e.key,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : null,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
-                  ),
-                ],
+                  ? _selectedColor.withValues(alpha: 0.2)
+                  : colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: isSelected
+                    ? _selectedColor
+                    : colorScheme.outlineVariant.withValues(alpha: 0.2),
+                width: isSelected ? 1.5 : 1,
               ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isSelected ? Icons.check_circle_rounded : e.value,
+                  size: 18,
+                  color: isSelected
+                      ? _selectedColor
+                      : colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  e.key,
+                  style: TextStyle(
+                    color: isSelected ? _selectedColor : colorScheme.onSurface,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -290,14 +302,20 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                   width: 3,
                 ),
                 boxShadow: [
-                  if (isSelected)
-                    BoxShadow(
-                      color: _colors[i].withOpacity(0.4),
-                      blurRadius: 12,
-                      spreadRadius: 2,
-                    ),
+                  BoxShadow(
+                    color: _colors[i].withValues(alpha: isSelected ? 0.4 : 0),
+                    blurRadius: 12,
+                    spreadRadius: 2,
+                  ),
                 ],
               ),
+              child: isSelected
+                  ? const Icon(
+                      Icons.check_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    )
+                  : null,
             ),
           );
         },
@@ -309,25 +327,15 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
     return Container(
       width: double.infinity,
       height: 60,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: _selectedColor.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
       child: ElevatedButton(
         onPressed: _isSaving ? null : _saveGoal,
         style: ElevatedButton.styleFrom(
           backgroundColor: _selectedColor,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
           ),
-          elevation: 0,
+          elevation: 2,
         ),
         child: _isSaving
             ? const SizedBox(
@@ -348,15 +356,6 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
 
   // --- Utility Methods ---
 
-  Widget _glow(Color color) => Container(
-    height: 300,
-    width: 300,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      boxShadow: [BoxShadow(color: color, blurRadius: 120, spreadRadius: 40)],
-    ),
-  );
-
   InputDecoration _inputDeco(String hint, ColorScheme colorScheme) =>
       InputDecoration(
         hintText: hint,
@@ -364,7 +363,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
         contentPadding: const EdgeInsets.symmetric(vertical: 15),
         hintStyle: TextStyle(
           fontSize: 14,
-          color: colorScheme.onSurface.withOpacity(0.3),
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
         ),
       );
 
@@ -374,7 +373,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
       fontSize: 10,
       fontWeight: FontWeight.bold,
       letterSpacing: 1.5,
-      color: colorScheme.onSurface.withOpacity(0.5),
+      color: colorScheme.primary,
     ),
   );
 }

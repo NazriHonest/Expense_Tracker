@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import '../models/wallet.dart';
 import '../providers/wallet_provider.dart';
-import '../widgets/glass_widgets.dart';
 
 class AddWalletScreen extends StatefulWidget {
   final Wallet? wallet;
@@ -100,6 +99,7 @@ class _AddWalletScreenState extends State<AddWalletScreen> {
           SnackBar(
             content: Text("Error: ${e.toString()}"),
             backgroundColor: Theme.of(context).colorScheme.error,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -112,131 +112,154 @@ class _AddWalletScreenState extends State<AddWalletScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: Text(widget.wallet != null ? "Edit Wallet" : "Add Wallet"),
-        backgroundColor: Colors.transparent,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
+        titleTextStyle: TextStyle(
+          color: colorScheme.onSurface,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
         iconTheme: IconThemeData(color: colorScheme.onSurface),
       ),
-      body: Stack(
-        children: [
-          Positioned(
-            top: -50,
-            left: -50,
-            child: _glow(colorScheme.primary.withOpacity(isDark ? 0.15 : 0.05)),
-          ),
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionLabel("WALLET DETAILS", colorScheme),
-                  GlassBox(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    child: TextFormField(
-                      controller: _nameController,
-                      style: TextStyle(color: colorScheme.onSurface),
-                      decoration: _inputDeco(
-                        "Wallet Name (e.g., Chase Checkings)",
-                        colorScheme,
-                      ),
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? "Required" : null,
-                    ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionLabel("WALLET DETAILS", colorScheme),
+              const SizedBox(height: 8),
+              _buildInputTile(
+                icon: Icons.wallet_outlined,
+                child: TextFormField(
+                  controller: _nameController,
+                  style: TextStyle(color: colorScheme.onSurface),
+                  decoration: _inputDeco(
+                    "Wallet Name (e.g., Chase Checkings)",
+                    colorScheme,
                   ),
-                  const SizedBox(height: 16),
-                  GlassBox(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    child: TextFormField(
-                      controller: _balanceController,
-                      style: TextStyle(color: colorScheme.onSurface),
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d+\.?\d{0,2}'),
-                        ),
-                      ],
-                      decoration: _inputDeco("Initial Balance", colorScheme),
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? "Required" : null,
-                    ),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? "Required" : null,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildInputTile(
+                icon: Icons.attach_money_rounded,
+                child: TextFormField(
+                  controller: _balanceController,
+                  style: TextStyle(color: colorScheme.onSurface),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
                   ),
-                  const SizedBox(height: 24),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'^\d+\.?\d{0,2}'),
+                    ),
+                  ],
+                  decoration: _inputDeco("Initial Balance", colorScheme),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? "Required" : null,
+                ),
+              ),
+              const SizedBox(height: 24),
 
-                  _buildSectionLabel("APPEARANCE", colorScheme),
-                  GlassBox(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Color",
-                          style: TextStyle(color: colorScheme.onSurface),
-                        ),
-                        const SizedBox(height: 8),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: _colors
-                                .map((c) => _buildColorBubble(c))
-                                .toList(),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          "Icon",
-                          style: TextStyle(color: colorScheme.onSurface),
-                        ),
-                        const SizedBox(height: 8),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: _icons
-                                .map((ic) => _buildIconBubble(ic))
-                                .toList(),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  _buildSectionLabel("SETTINGS", colorScheme),
-                  GlassBox(
-                    padding: const EdgeInsets.all(16),
-                    child: SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        "Set as default wallet",
+              _buildSectionLabel("APPEARANCE", colorScheme),
+              const SizedBox(height: 8),
+              Card(
+                elevation: 2,
+                shadowColor: colorScheme.shadow,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Color",
                         style: TextStyle(
                           color: colorScheme.onSurface,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
                         ),
                       ),
-                      value: _isDefault,
-                      activeColor: colorScheme.primary,
-                      onChanged: (val) => setState(() => _isDefault = val),
-                    ),
+                      const SizedBox(height: 12),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: _colors
+                              .map((c) => _buildColorBubble(c, colorScheme))
+                              .toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        "Icon",
+                        style: TextStyle(
+                          color: colorScheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: _icons
+                              .map((ic) => _buildIconBubble(ic, colorScheme))
+                              .toList(),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(height: 24),
+
+              _buildSectionLabel("SETTINGS", colorScheme),
+              const SizedBox(height: 8),
+              Card(
+                elevation: 2,
+                shadowColor: colorScheme.shadow,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: SwitchListTile.adaptive(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                    title: Text(
+                      "Set as default wallet",
+                      style: TextStyle(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
+                    subtitle: Text(
+                      "Default wallet will be selected automatically",
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                    value: _isDefault,
+                    activeColor: colorScheme.primary,
+                    onChanged: (val) => setState(() => _isDefault = val),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+            ],
           ),
-        ],
+        ),
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
@@ -253,8 +276,9 @@ class _AddWalletScreenState extends State<AddWalletScreen> {
               foregroundColor: colorScheme.onPrimary,
               minimumSize: const Size(double.infinity, 60),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
               ),
+              elevation: 2,
             ),
             child: _isSaving
                 ? const SizedBox(
@@ -278,50 +302,83 @@ class _AddWalletScreenState extends State<AddWalletScreen> {
     );
   }
 
-  Widget _buildColorBubble(Color c) {
+  // --- Material 3 Input Component ---
+  Widget _buildInputTile({required IconData icon, required Widget child}) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: colorScheme.primary, size: 20),
+          const SizedBox(width: 14),
+          Expanded(child: child),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildColorBubble(Color c, ColorScheme colorScheme) {
     final isSelected = _selectedColor == c.value;
     return GestureDetector(
       onTap: () => setState(() => _selectedColor = c.value),
       child: Container(
         margin: const EdgeInsets.only(right: 12),
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
           color: c,
           shape: BoxShape.circle,
-          border: isSelected ? Border.all(color: Colors.white, width: 3) : null,
+          border: isSelected
+              ? Border.all(color: colorScheme.onSurface, width: 3)
+              : null,
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: c.withOpacity(0.5),
+                    color: c.withValues(alpha: 0.5),
                     blurRadius: 8,
                     spreadRadius: 2,
                   ),
                 ]
               : [],
         ),
+        child: isSelected
+            ? const Icon(Icons.check_rounded, color: Colors.white, size: 24)
+            : null,
       ),
     );
   }
 
-  Widget _buildIconBubble(IconData ic) {
+  Widget _buildIconBubble(IconData ic, ColorScheme colorScheme) {
     final isSelected = _selectedIcon == ic.codePoint;
     final color = Color(_selectedColor);
     return GestureDetector(
       onTap: () => setState(() => _selectedIcon = ic.codePoint),
       child: Container(
         margin: const EdgeInsets.only(right: 12),
-        width: 44,
-        height: 44,
+        width: 48,
+        height: 48,
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.2) : Colors.transparent,
-          shape: BoxShape.circle,
+          color: isSelected
+              ? color.withValues(alpha: 0.2)
+              : colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(24),
+          border: isSelected
+              ? Border.all(color: color, width: 2)
+              : Border.all(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+                  width: 1,
+                ),
         ),
         child: Icon(
           ic,
-          color: isSelected
-              ? color
-              : Theme.of(context).colorScheme.onSurfaceVariant,
+          color: isSelected ? color : colorScheme.onSurfaceVariant,
+          size: 24,
         ),
       ),
     );
@@ -331,31 +388,24 @@ class _AddWalletScreenState extends State<AddWalletScreen> {
       InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
-          color: colorScheme.onSurfaceVariant.withOpacity(0.4),
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
           fontSize: 15,
         ),
         border: InputBorder.none,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(vertical: 12),
       );
 
   Widget _buildSectionLabel(String t, ColorScheme colorScheme) => Padding(
-    padding: const EdgeInsets.only(bottom: 10, left: 4),
+    padding: const EdgeInsets.only(left: 4),
     child: Text(
       t,
       style: TextStyle(
-        color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+        color: colorScheme.primary,
         fontSize: 10,
         fontWeight: FontWeight.bold,
         letterSpacing: 1.2,
       ),
-    ),
-  );
-
-  Widget _glow(Color c) => Container(
-    width: 300,
-    height: 300,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      boxShadow: [BoxShadow(color: c, blurRadius: 100, spreadRadius: 40)],
     ),
   );
 }
