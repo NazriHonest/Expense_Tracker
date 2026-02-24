@@ -621,12 +621,28 @@ class ExpenseRepository:
     async def get_export_data(self, user_id: int) -> dict:
         """Fetch all financial data for export (CSV/JSON/Excel generation)"""
         async with self.pool.acquire() as connection:
-            expenses = await connection.fetch("SELECT * FROM expenses WHERE user_id = $1 ORDER BY date DESC", user_id)
-            incomes = await connection.fetch("SELECT * FROM income WHERE user_id = $1 ORDER BY date DESC", user_id)
+            expenses = await connection.fetch(
+                "SELECT id, title, amount, category, date, notes FROM expenses WHERE user_id = $1 ORDER BY date DESC",
+                user_id
+            )
+            incomes = await connection.fetch(
+                "SELECT id, title, amount, category, date, notes FROM income WHERE user_id = $1 ORDER BY date DESC",
+                user_id
+            )
+            
+            def serialize_row(row):
+                data = dict(row)
+                # Convert Decimal to float for JSON serialization
+                if 'amount' in data and data['amount'] is not None:
+                    data['amount'] = float(data['amount'])
+                # Convert datetime to ISO string for JSON serialization
+                if 'date' in data and data['date'] is not None:
+                    data['date'] = data['date'].isoformat()
+                return data
             
             return {
-                "expenses": [dict(row) for row in expenses],
-                "income": [dict(row) for row in incomes]
+                "expenses": [serialize_row(row) for row in expenses],
+                "income": [serialize_row(row) for row in incomes]
             }
 
     # --- Category Management Methods ---

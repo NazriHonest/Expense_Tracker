@@ -16,10 +16,19 @@ class NotificationService {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    const InitializationSettings initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid);
+    const DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
 
-    // FIX: Use 'settings' as named parameter based on lints
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsIOS,
+        );
+
     await flutterLocalNotificationsPlugin.initialize(
       settings: initializationSettings,
     );
@@ -33,12 +42,27 @@ class NotificationService {
       await androidImplementation.requestNotificationsPermission();
       await androidImplementation.requestExactAlarmsPermission();
     }
+
+    // Request iOS permissions
+    final iosImplementation = flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >();
+
+    if (iosImplementation != null) {
+      await iosImplementation.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    }
   }
 
   Future<void> showNotification({
     required int id,
     required String title,
     required String body,
+    String? payload,
   }) async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
@@ -47,21 +71,28 @@ class NotificationService {
           channelDescription: 'Main channel for notifications',
           importance: Importance.max,
           priority: Priority.high,
+          enableVibration: true,
+          playSound: true,
         );
+
+    const DarwinNotificationDetails iosPlatformChannelSpecifics =
+        DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        );
+
     const NotificationDetails platformChannelSpecifics = NotificationDetails(
       android: androidPlatformChannelSpecifics,
+      iOS: iosPlatformChannelSpecifics,
     );
 
-    // FIX: Using named arguments if 'show' requires them.
-    // Usually 'show' is positional, but given the 'zonedSchedule' lints,
-    // and if I can't verify 'show' signature, I'll rely on common patterns.
-    // However, lints for 'show' (line 49 in previous file) said "0 expected but 4 found".
-    // This confirms 'show' takes NO positional args. So it MUST be named.
     await flutterLocalNotificationsPlugin.show(
       id: id,
       title: title,
       body: body,
       notificationDetails: platformChannelSpecifics,
+      payload: payload,
     );
   }
 
@@ -70,9 +101,8 @@ class NotificationService {
     required String title,
     required String body,
     required DateTime scheduledDate,
+    String? payload,
   }) async {
-    // FIX: Use named arguments
-    // Removed 'uiLocalNotificationDateInterpretation' as lints said it's undefined parameter.
     await flutterLocalNotificationsPlugin.zonedSchedule(
       id: id,
       title: title,
@@ -85,17 +115,30 @@ class NotificationService {
           channelDescription: 'Channel for scheduled reminders',
           importance: Importance.max,
           priority: Priority.high,
+          enableVibration: true,
+          playSound: true,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      payload: payload,
     );
   }
 
+  /// Schedules repeating daily hydration reminders.
+  ///
+  /// Uses [matchDateTimeComponents: DateTimeComponents.time] so each
+  /// notification repeats every day at the same time automatically.
+  /// Reminders are spaced by [intervalMinutes] between 7 AM and 11 PM.
   Future<void> scheduleDailyHydration(
     int intervalMinutes,
     String username,
   ) async {
-    // Cancel previous reminders
+    // Cancel previous hydration reminders (IDs 2000–2099)
     for (int i = 0; i < 100; i++) {
       await flutterLocalNotificationsPlugin.cancel(id: 2000 + i);
     }
@@ -104,53 +147,48 @@ class NotificationService {
 
     final now = tz.TZDateTime.now(tz.local);
 
-    // Define daily window
-    final startHour = 7;
-    final endHour = 23;
+    // Define daily window: 7 AM to 11 PM
+    const startHour = 7;
+    const endHour = 23;
 
     int idCounter = 0;
 
-    // Start from today at 7 AM
-    tz.TZDateTime startTime = tz.TZDateTime(
+    // Build the schedule starting from 7 AM today
+    tz.TZDateTime scheduledTime = tz.TZDateTime(
       tz.local,
       now.year,
       now.month,
       now.day,
       startHour,
+      0, // minute
     );
-
-    // If current time is past today's window → start tomorrow
-    if (now.hour >= endHour) {
-      startTime = startTime.add(const Duration(days: 1));
-    }
-
-    // If before 7 AM → schedule from 7 AM today
-    if (now.hour < startHour) {
-      startTime = tz.TZDateTime(
-        tz.local,
-        now.year,
-        now.month,
-        now.day,
-        startHour,
-      );
-    }
-
-    // Generate reminders for the whole day
-    tz.TZDateTime scheduledTime = startTime;
 
     final messages = [
       '$username, time to drink water 💧',
       'Stay hydrated, $username!',
       '💧 $username, your body needs water.',
+      'Water break, $username! 🥤',
+      'Keep drinking water, $username! 💦',
+      'Hydration time, $username! 🚰',
+      'Don\'t forget to drink water, $username!',
     ];
 
-    while (scheduledTime.hour < endHour) {
-      if (scheduledTime.isAfter(now)) {
+    // Schedule a notification for each slot in the daily window.
+    while (scheduledTime.hour < endHour && idCounter < 100) {
+      // Ensure the first scheduled time is in the future
+      tz.TZDateTime targetTime = scheduledTime;
+      if (targetTime.isBefore(now)) {
+        // Move to tomorrow at the same time
+        targetTime = targetTime.add(const Duration(days: 1));
+      }
+
+      // Only schedule if still within today's window after adjustment
+      if (targetTime.isAfter(now)) {
         await flutterLocalNotificationsPlugin.zonedSchedule(
           id: 2000 + idCounter,
-          title: 'Hydration Reminder',
+          title: 'Hydration Reminder 💧',
           body: messages[idCounter % messages.length],
-          scheduledDate: scheduledTime,
+          scheduledDate: targetTime,
           notificationDetails: const NotificationDetails(
             android: AndroidNotificationDetails(
               'health_channel',
@@ -158,6 +196,13 @@ class NotificationService {
               channelDescription: 'Daily hydration reminders',
               importance: Importance.max,
               priority: Priority.high,
+              enableVibration: true,
+              playSound: true,
+            ),
+            iOS: DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
             ),
           ),
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
@@ -173,5 +218,15 @@ class NotificationService {
 
   Future<void> cancelAll() async {
     await flutterLocalNotificationsPlugin.cancelAll();
+  }
+
+  Future<void> cancelNotification(int id) async {
+    await flutterLocalNotificationsPlugin.cancel(id: id);
+  }
+
+  Future<void> getPendingNotificationRequests() async {
+    final pending = await flutterLocalNotificationsPlugin
+        .pendingNotificationRequests();
+    print('📋 Pending notifications: $pending');
   }
 }

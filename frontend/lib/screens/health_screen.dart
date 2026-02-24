@@ -1020,7 +1020,7 @@ class _HealthScreenState extends State<HealthScreen> {
                       style: TextStyle(color: colorScheme.onSurface),
                     ),
                     value: exercise,
-                    activeColor: colorScheme.primary,
+                    activeThumbColor: colorScheme.primary,
                     onChanged: (val) {
                       setState(() => exercise = val);
                     },

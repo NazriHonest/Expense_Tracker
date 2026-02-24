@@ -1062,7 +1062,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               _sectionLabel("SELECT CATEGORY"),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: selectedCategory,
+                initialValue: selectedCategory,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: colorScheme.surfaceContainerHighest,

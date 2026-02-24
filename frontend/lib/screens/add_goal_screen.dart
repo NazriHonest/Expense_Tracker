@@ -324,7 +324,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
   }
 
   Widget _buildSubmitButton() {
-    return Container(
+    return SizedBox(
       width: double.infinity,
       height: 60,
       child: ElevatedButton(

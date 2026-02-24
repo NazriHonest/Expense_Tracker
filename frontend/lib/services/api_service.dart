@@ -278,8 +278,18 @@ class ApiService {
 
   // --- Data Export ---
   Future<Map<String, dynamic>> getExportData() async {
-    final response = await _dio.get('/analytics/export');
-    return response.data;
+    try {
+      final response = await _dio.get('/analytics/export');
+      return response.data;
+    } catch (e) {
+      // Fallback: If the analytics/export endpoint fails (e.g. 500 format error on Render),
+      // fallback to fetching expenses and incomes separately since those serializers work.
+      debugPrint("Export endpoint failed, using fallback APIs. Error: $e");
+      final expensesResponse = await _dio.get('/expenses/');
+      final incomeResponse = await _dio.get('/income/');
+
+      return {'expenses': expensesResponse.data, 'income': incomeResponse.data};
+    }
   }
 
   // --- Category Management ---

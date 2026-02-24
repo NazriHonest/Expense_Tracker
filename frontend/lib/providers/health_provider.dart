@@ -55,7 +55,7 @@ class HealthProvider with ChangeNotifier {
 
       // Schedule notifications if needed (could be optimized to not reschedule every load)
       if (_settings != null) {
-        _scheduleReminders();
+        await _scheduleReminders();
       }
     } catch (e) {
       debugPrint("Error loading health data: $e");
@@ -135,17 +135,17 @@ class HealthProvider with ChangeNotifier {
     try {
       final savedSettings = await _apiService.updateHealthSettings(newSettings);
       _settings = savedSettings;
-      _scheduleReminders();
+      await _scheduleReminders();
     } catch (e) {
       debugPrint("Error updating settings: $e");
     }
     notifyListeners();
   }
 
-  void _scheduleReminders() {
-    String username = _apiService.getUsername() as String;
-
+  Future<void> _scheduleReminders() async {
     if (_settings == null) return;
+
+    final username = await _apiService.getUsername() ?? 'Friend';
 
     if (_settings!.reminderInterval > 0) {
       _notificationService.scheduleDailyHydration(
