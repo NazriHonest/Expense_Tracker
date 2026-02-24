@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:intl/intl.dart';
 
 // Services & Providers
 import '../providers/expense_provider.dart';
+import '../providers/income_provider.dart';
 import '../providers/budget_provider.dart';
 import '../providers/goal_provider.dart';
 import '../services/pdf_service.dart';
@@ -16,24 +18,41 @@ class AnalyticsScreen extends StatefulWidget {
   State<AnalyticsScreen> createState() => _AnalyticsScreenState();
 }
 
-class _AnalyticsScreenState extends State<AnalyticsScreen> {
+class _AnalyticsScreenState extends State<AnalyticsScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   bool _isLoading = true;
   List<dynamic> _categoryData = [];
   Map<String, dynamic> _insights = {};
   int _touchedIndex = -1;
+  int _incomeTouchedIndex = -1;
   String _selectedTimeRange = 'Month';
+
+  // Income analytics data
+  List<Map<String, dynamic>> _incomeBySource = [];
+  List<double> _monthlyIncomeTrend = [];
+  List<double> _monthlyExpenseTrend = [];
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
     _isLoading = false;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _calculateLocalAnalytics();
+      _calculateIncomeAnalytics();
     });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadAnalytics() async {
     _calculateLocalAnalytics();
+    _calculateIncomeAnalytics();
     return Future.value();
   }
 
@@ -89,6 +108,52 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       _insights = {};
       _categoryData = [];
     }
+
+    setState(() {});
+  }
+
+  void _calculateIncomeAnalytics() {
+    final incomeProvider = Provider.of<IncomeProvider>(context, listen: false);
+    final expenseProvider = Provider.of<ExpenseProvider>(
+      context,
+      listen: false,
+    );
+    final allIncomes = incomeProvider.incomes;
+    final allExpenses = expenseProvider.expenses;
+    final now = DateTime.now();
+
+    // Income by source (category)
+    final Map<String, double> sourceMap = {};
+    for (var i in allIncomes) {
+      sourceMap[i.category] = (sourceMap[i.category] ?? 0) + i.amount;
+    }
+    _incomeBySource =
+        sourceMap.entries
+            .map((e) => {'category': e.key, 'total': e.value})
+            .toList()
+          ..sort(
+            (a, b) => (b['total'] as double).compareTo(a['total'] as double),
+          );
+
+    // Monthly income & expense trend (last 6 months)
+    _monthlyIncomeTrend = List.generate(6, (i) {
+      final month = DateTime(now.year, now.month - (5 - i), 1);
+      return allIncomes
+          .where(
+            (inc) =>
+                inc.date.year == month.year && inc.date.month == month.month,
+          )
+          .fold(0.0, (sum, inc) => sum + inc.amount);
+    });
+    _monthlyExpenseTrend = List.generate(6, (i) {
+      final month = DateTime(now.year, now.month - (5 - i), 1);
+      return allExpenses
+          .where(
+            (exp) =>
+                exp.date.year == month.year && exp.date.month == month.month,
+          )
+          .fold(0.0, (sum, exp) => sum + exp.amount);
+    });
 
     setState(() {});
   }
@@ -1086,6 +1151,769 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return Icons.category;
   }
 
+  // ─── AI INSIGHTS BUILDER ────────────────────────────────────────
+  Widget _buildAiInsights(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    final expProv = Provider.of<ExpenseProvider>(context);
+    final incProv = Provider.of<IncomeProvider>(context);
+    final budProv = Provider.of<BudgetProvider>(context);
+    final goalProv = Provider.of<GoalProvider>(context);
+    final now = DateTime.now();
+    final currFmt = NumberFormat.simpleCurrency();
+
+    final thisMonthExp = expProv.expenses
+        .where((e) => e.date.year == now.year && e.date.month == now.month)
+        .fold(0.0, (s, e) => s + e.amount);
+    final lastMonthExp = expProv.expenses
+        .where(
+          (e) =>
+              e.date.year == DateTime(now.year, now.month - 1).year &&
+              e.date.month == DateTime(now.year, now.month - 1).month,
+        )
+        .fold(0.0, (s, e) => s + e.amount);
+    final thisMonthInc = incProv.incomes
+        .where((i) => i.date.year == now.year && i.date.month == now.month)
+        .fold(0.0, (s, i) => s + i.amount);
+
+    final savingsRate = thisMonthInc > 0
+        ? ((thisMonthInc - thisMonthExp) / thisMonthInc * 100).clamp(0, 100)
+        : 0.0;
+    final expChange = lastMonthExp > 0
+        ? ((thisMonthExp - lastMonthExp) / lastMonthExp * 100)
+        : 0.0;
+    final daysLeft = DateTime(now.year, now.month + 1, 0).day - now.day;
+    final projectedExp =
+        thisMonthExp / now.day * DateTime(now.year, now.month + 1, 0).day;
+
+    final budgetProgress = budProv.budgets.isNotEmpty
+        ? budProv.budgets.fold(0.0, (s, b) => s + b.spent) /
+              budProv.budgets.fold(0.0, (s, b) => s + b.limit)
+        : 0.0;
+
+    final nearGoals = goalProv.goals
+        .where((g) => g.progress >= 0.75 && !g.isCompleted)
+        .toList();
+    final completedGoals = goalProv.goals.where((g) => g.isCompleted).toList();
+
+    final List<Map<String, dynamic>> cards = [];
+
+    // Savings rate insight
+    if (thisMonthInc > 0) {
+      String savEmoji, savMsg;
+      Color savColor;
+      if (savingsRate >= 20) {
+        savEmoji = '🌟';
+        savColor = Colors.green;
+        savMsg =
+            'You\'re saving ${savingsRate.toStringAsFixed(1)}% of income this month. Excellent financial health!';
+      } else if (savingsRate >= 10) {
+        savEmoji = '👍';
+        savColor = Colors.blue;
+        savMsg =
+            'Saving ${savingsRate.toStringAsFixed(1)}% of income. Try to reach 20% for better security.';
+      } else if (savingsRate > 0) {
+        savEmoji = '⚠️';
+        savColor = Colors.orange;
+        savMsg =
+            'Only ${savingsRate.toStringAsFixed(1)}% saved this month. Reducing expenses could help.';
+      } else {
+        savEmoji = '🔴';
+        savColor = colorScheme.error;
+        savMsg =
+            'Your expenses exceed income this month. Review your spending urgently.';
+      }
+      cards.add({
+        'emoji': savEmoji,
+        'title': 'Savings Rate',
+        'body': savMsg,
+        'color': savColor,
+      });
+    }
+
+    // Month-over-month trend
+    if (lastMonthExp > 0) {
+      final isUp = expChange > 0;
+      cards.add({
+        'emoji': isUp ? '📈' : '📉',
+        'title': 'Spending Trend',
+        'body': isUp
+            ? 'Spending is up ${expChange.abs().toStringAsFixed(1)}% vs last month (${currFmt.format(lastMonthExp)} → ${currFmt.format(thisMonthExp)}).'
+            : 'Great! Spending is down ${expChange.abs().toStringAsFixed(1)}% vs last month. Keep it up!',
+        'color': isUp ? Colors.orange : Colors.green,
+      });
+    }
+
+    // Monthly projection
+    if (thisMonthExp > 0 &&
+        now.day < DateTime(now.year, now.month + 1, 0).day) {
+      cards.add({
+        'emoji': '🔮',
+        'title': 'Month Projection',
+        'body':
+            'At current pace, you\'ll spend ${currFmt.format(projectedExp)} by month\'s end with $daysLeft days remaining.',
+        'color': projectedExp > thisMonthInc ? colorScheme.error : Colors.teal,
+      });
+    }
+
+    // Budget health
+    if (budProv.budgets.isNotEmpty) {
+      String budEmoji, budMsg;
+      Color budColor;
+      if (budgetProgress >= 1.0) {
+        budEmoji = '🚨';
+        budColor = colorScheme.error;
+        budMsg =
+            'You\'ve exceeded your budget. Consider cutting back on non-essentials.';
+      } else if (budgetProgress >= 0.85) {
+        budEmoji = '⚠️';
+        budColor = Colors.orange;
+        budMsg =
+            '${(budgetProgress * 100).toStringAsFixed(0)}% budget used. Slow down spending to stay on track.';
+      } else {
+        budEmoji = '✅';
+        budColor = Colors.green;
+        budMsg =
+            '${(budgetProgress * 100).toStringAsFixed(0)}% of budget used — you\'re in good shape!';
+      }
+      cards.add({
+        'emoji': budEmoji,
+        'title': 'Budget Health',
+        'body': budMsg,
+        'color': budColor,
+      });
+    }
+
+    // Goals near completion
+    for (final g in nearGoals.take(2)) {
+      cards.add({
+        'emoji': '🎯',
+        'title': 'Goal: ${g.title}',
+        'body':
+            '${(g.progress * 100).toStringAsFixed(0)}% reached! Only ${currFmt.format(g.targetAmount - g.currentAmount)} left to complete this goal.',
+        'color': Colors.blue,
+      });
+    }
+    for (final g in completedGoals.take(1)) {
+      cards.add({
+        'emoji': '🏆',
+        'title': 'Goal Achieved!',
+        'body':
+            '"${g.title}" is fully funded. Celebrate and set your next goal!',
+        'color': Colors.amber,
+      });
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.teal.shade400, Colors.indigo.shade400],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AI Financial Insights',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  Text(
+                    'Personalised analysis of your finances',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          if (cards.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                children: [
+                  const Text('🧠', style: TextStyle(fontSize: 40)),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Add transactions to unlock AI insights',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            )
+          else
+            ...cards.map((c) => _buildInsightCard(c, theme, colorScheme)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInsightCard(
+    Map<String, dynamic> card,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
+    final color = card['color'] as Color;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 1.5),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(card['emoji'] as String, style: const TextStyle(fontSize: 28)),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  card['title'] as String,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  card['body'] as String,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurface,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── INCOME ANALYTICS BUILDERS ──────────────────────────────────
+  Widget _buildIncomeAnalytics(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    final incProv = Provider.of<IncomeProvider>(context);
+    final now = DateTime.now();
+    final currFmt = NumberFormat.simpleCurrency();
+
+    final thisMonthInc = incProv.incomes
+        .where((i) => i.date.year == now.year && i.date.month == now.month)
+        .fold(0.0, (s, i) => s + i.amount);
+    final lastMonthInc = incProv.incomes
+        .where(
+          (i) =>
+              i.date.year == DateTime(now.year, now.month - 1).year &&
+              i.date.month == DateTime(now.year, now.month - 1).month,
+        )
+        .fold(0.0, (s, i) => s + i.amount);
+    final incChange = lastMonthInc > 0
+        ? ((thisMonthInc - lastMonthInc) / lastMonthInc * 100)
+        : 0.0;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+      child: Column(
+        children: [
+          // Summary row
+          Row(
+            children: [
+              Expanded(
+                child: _buildIncomeStatCard(
+                  colorScheme,
+                  'This Month',
+                  currFmt.format(thisMonthInc),
+                  Icons.calendar_today_rounded,
+                  Colors.green,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildIncomeStatCard(
+                  colorScheme,
+                  'vs Last Month',
+                  '${incChange >= 0 ? '+' : ''}${incChange.toStringAsFixed(1)}%',
+                  incChange >= 0
+                      ? Icons.trending_up_rounded
+                      : Icons.trending_down_rounded,
+                  incChange >= 0 ? Colors.green : colorScheme.error,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Income by source pie
+          if (_incomeBySource.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                children: [
+                  _buildCardHeader(
+                    theme,
+                    'Income by Source',
+                    Icons.donut_small_rounded,
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    height: 220,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: PieChart(
+                            PieChartData(
+                              pieTouchData: PieTouchData(
+                                touchCallback: (e, r) {
+                                  setState(() {
+                                    _incomeTouchedIndex =
+                                        (r == null || r.touchedSection == null)
+                                        ? -1
+                                        : r.touchedSection!.touchedSectionIndex;
+                                  });
+                                },
+                              ),
+                              sectionsSpace: 2,
+                              centerSpaceRadius: 35,
+                              sections: _incomeBySource.asMap().entries.map((
+                                entry,
+                              ) {
+                                final idx = entry.key;
+                                final val = (entry.value['total'] as double);
+                                final total = _incomeBySource.fold(
+                                  0.0,
+                                  (s, e) => s + (e['total'] as double),
+                                );
+                                return PieChartSectionData(
+                                  color: _getIncomeSourceColor(
+                                    entry.value['category'],
+                                  ),
+                                  value: val,
+                                  title:
+                                      '${((val / total) * 100).toStringAsFixed(0)}%',
+                                  radius: idx == _incomeTouchedIndex ? 55 : 45,
+                                  titleStyle: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: ListView(
+                            children: _incomeBySource.map((item) {
+                              final color = _getIncomeSourceColor(
+                                item['category'],
+                              );
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 5,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: color,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        item['category'],
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: colorScheme.onSurface,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Source breakdown list
+                  ..._incomeBySource.take(5).map((item) {
+                    final maxVal = (_incomeBySource.first['total'] as double);
+                    final color = _getIncomeSourceColor(item['category']);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        children: [
+                          Icon(Icons.circle, color: color, size: 10),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item['category'],
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: colorScheme.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                LinearProgressIndicator(
+                                  value: (item['total'] as double) / maxVal,
+                                  minHeight: 4,
+                                  backgroundColor: color.withValues(alpha: 0.1),
+                                  valueColor: AlwaysStoppedAnimation(color),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            currFmt.format(item['total']),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          const SizedBox(height: 20),
+
+          // Income vs Expense 6-month bar chart
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildCardHeader(
+                  theme,
+                  '6-Month Income vs Expenses',
+                  Icons.compare_arrows_rounded,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _buildLegendDot(Colors.green, 'Income'),
+                    const SizedBox(width: 16),
+                    _buildLegendDot(colorScheme.error, 'Expenses'),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  height: 200,
+                  child: BarChart(
+                    BarChartData(
+                      maxY: (() {
+                        final allVals = [
+                          ..._monthlyIncomeTrend,
+                          ..._monthlyExpenseTrend,
+                        ];
+                        return allVals.isEmpty
+                            ? 100.0
+                            : allVals.reduce((a, b) => a > b ? a : b) * 1.2;
+                      })(),
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        getDrawingHorizontalLine: (value) => FlLine(
+                          color: colorScheme.onSurface.withValues(alpha: 0.05),
+                          strokeWidth: 1,
+                        ),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      titlesData: FlTitlesData(
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 36,
+                            getTitlesWidget: (v, m) => Text(
+                              '\$${(v / 1000).toStringAsFixed(0)}k',
+                              style: TextStyle(
+                                fontSize: 8,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (v, m) {
+                              final now2 = DateTime.now();
+                              final month = DateTime(
+                                now2.year,
+                                now2.month - 5 + v.toInt(),
+                              );
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  DateFormat('MMM').format(month),
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      barGroups: List.generate(6, (i) {
+                        return BarChartGroupData(
+                          x: i,
+                          barRods: [
+                            BarChartRodData(
+                              toY: _monthlyIncomeTrend.length > i
+                                  ? _monthlyIncomeTrend[i]
+                                  : 0,
+                              color: Colors.green,
+                              width: 8,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            BarChartRodData(
+                              toY: _monthlyExpenseTrend.length > i
+                                  ? _monthlyExpenseTrend[i]
+                                  : 0,
+                              color: colorScheme.error,
+                              width: 8,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ],
+                        );
+                      }),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // All income history
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildCardHeader(
+                  theme,
+                  'Income History',
+                  Icons.history_rounded,
+                ),
+                const SizedBox(height: 16),
+                if (incProv.incomes.isEmpty)
+                  Center(
+                    child: Text(
+                      'No income records yet.',
+                      style: TextStyle(color: colorScheme.onSurfaceVariant),
+                    ),
+                  )
+                else
+                  ...incProv.incomes.take(10).map((inc) {
+                    final color = _getIncomeSourceColor(inc.category);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              Icons.arrow_downward_rounded,
+                              color: color,
+                              size: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  inc.title,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onSurface,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                Text(
+                                  DateFormat('MMM d, yyyy').format(inc.date),
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            '+${currFmt.format(inc.amount)}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIncomeStatCard(
+    ColorScheme cs,
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: color,
+            ),
+          ),
+          Text(
+            label,
+            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendDot(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 11,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getIncomeSourceColor(String source) {
+    const Map<String, Color> colors = {
+      'Salary': Colors.green,
+      'Freelance': Colors.blue,
+      'Investment': Colors.purple,
+      'Gift': Colors.pink,
+      'Refund': Colors.teal,
+      'Other': Colors.orange,
+    };
+    return colors[source] ?? Colors.grey;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1093,27 +1921,98 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      body: RefreshIndicator(
-        onRefresh: _loadAnalytics,
-        color: colorScheme.primary,
-        backgroundColor: colorScheme.surface,
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
-          child: Column(
-            children: [
-              _buildHeader(theme),
-              const SizedBox(height: 20),
-              _buildRemainingBudget(theme),
-              _buildSavingsVsSpending(theme),
-              _buildSmartInsights(theme),
-              _buildInteractivePieChart(theme),
-              _buildTopCategories(theme),
-              _buildWeeklyBarChart(theme),
-            ],
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: _buildHeader(theme),
+            ),
           ),
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _TabBarDelegate(
+              TabBar(
+                controller: _tabController,
+                labelColor: colorScheme.primary,
+                unselectedLabelColor: colorScheme.onSurfaceVariant,
+                indicatorColor: colorScheme.primary,
+                indicatorSize: TabBarIndicatorSize.tab,
+                labelStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+                tabs: const [
+                  Tab(text: 'Expenses'),
+                  Tab(text: 'Income'),
+                  Tab(text: '✨ AI'),
+                ],
+              ),
+              colorScheme.surface,
+            ),
+          ),
+        ],
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            // ── Expenses Tab ──
+            RefreshIndicator(
+              onRefresh: _loadAnalytics,
+              color: colorScheme.primary,
+              backgroundColor: colorScheme.surface,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+                child: Column(
+                  children: [
+                    _buildRemainingBudget(theme),
+                    _buildSavingsVsSpending(theme),
+                    _buildSmartInsights(theme),
+                    _buildInteractivePieChart(theme),
+                    _buildTopCategories(theme),
+                    _buildWeeklyBarChart(theme),
+                  ],
+                ),
+              ),
+            ),
+            // ── Income Tab ──
+            RefreshIndicator(
+              onRefresh: _loadAnalytics,
+              color: colorScheme.primary,
+              backgroundColor: colorScheme.surface,
+              child: _buildIncomeAnalytics(theme),
+            ),
+            // ── AI Insights Tab ──
+            SingleChildScrollView(child: _buildAiInsights(theme)),
+          ],
         ),
       ),
     );
   }
+}
+
+/// Sliver persistent header delegate to pin the TabBar
+class _TabBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
+  final Color backgroundColor;
+
+  _TabBarDelegate(this.tabBar, this.backgroundColor);
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(color: backgroundColor, child: tabBar);
+  }
+
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+
+  @override
+  bool shouldRebuild(_TabBarDelegate oldDelegate) => false;
 }

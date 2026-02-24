@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_saver/file_saver.dart';
+import 'dart:convert';
+import 'dart:typed_data';
 import '../services/api_service.dart';
 
 class DataExportScreen extends StatefulWidget {
@@ -65,16 +68,36 @@ class _DataExportScreenState extends State<DataExportScreen> {
     }
   }
 
-  void _copyToClipboard() {
+  Future<void> _exportToFile() async {
     if (_exportData != null) {
-      Clipboard.setData(ClipboardData(text: _exportData!));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("CSV copied to clipboard!"),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      try {
+        final bytes = utf8.encode(_exportData!);
+        await FileSaver.instance.saveFile(
+          name: "ExpenseTrackerData",
+          bytes: Uint8List.fromList(bytes),
+          fileExtension: "csv",
+          mimeType: MimeType.csv,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text("CSV saved successfully!"),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Failed to save: $e"),
+              backgroundColor: Theme.of(context).colorScheme.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -213,9 +236,9 @@ class _DataExportScreenState extends State<DataExportScreen> {
               ),
               const SizedBox(height: 20),
               FilledButton.icon(
-                onPressed: _copyToClipboard,
-                icon: const Icon(Icons.copy_rounded),
-                label: const Text("Copy to Clipboard"),
+                onPressed: _exportToFile,
+                icon: const Icon(Icons.download_rounded),
+                label: const Text("Save CSV File"),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(
@@ -224,6 +247,7 @@ class _DataExportScreenState extends State<DataExportScreen> {
                 ),
               ),
             ],
+            const SizedBox(height: 80),
           ],
         ),
       ),

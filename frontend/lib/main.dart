@@ -18,6 +18,7 @@ import 'providers/subscription_provider.dart';
 import 'providers/health_provider.dart';
 import 'providers/wallet_provider.dart';
 import 'providers/debt_provider.dart';
+import 'providers/notification_provider.dart';
 
 // Screens
 import 'screens/main_navigation_screen.dart';
@@ -83,6 +84,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => HealthProvider()),
         ChangeNotifierProvider(create: (_) => WalletProvider(ApiService())),
         ChangeNotifierProvider(create: (_) => DebtProvider(ApiService())),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: const MyApp(),
     ),
@@ -99,9 +101,9 @@ class MyApp extends StatelessWidget {
         return MaterialApp(
           title: 'Expense Tracker',
           debugShowCheckedModeBanner: false,
-      //     theme: AppTheme.light,
-      // darkTheme: AppTheme.dark,
-      // themeMode: ThemeMode.system,
+          //     theme: AppTheme.light,
+          // darkTheme: AppTheme.dark,
+          // themeMode: ThemeMode.system,
           theme: themeProvider.lightTheme,
           darkTheme: themeProvider.darkTheme,
           themeMode: themeProvider.themeMode,

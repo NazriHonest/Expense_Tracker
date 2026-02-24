@@ -17,8 +17,10 @@ import '../providers/goal_provider.dart';
 import '../providers/subscription_provider.dart';
 import '../providers/wallet_provider.dart';
 import '../providers/debt_provider.dart';
+import '../providers/notification_provider.dart';
 import '../models/income.dart';
 import '../models/expense.dart';
+import '../models/app_notification.dart';
 
 // Screens
 import 'analytics_screen.dart';
@@ -28,6 +30,7 @@ import 'add_goal_screen.dart';
 import 'subscription_screen.dart';
 import 'health_screen.dart';
 import 'debt_tracking_screen.dart';
+import 'notification_center_screen.dart';
 
 // Reusable Widgets
 import 'main_budget_screen.dart';
@@ -104,6 +107,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               body:
                   "${newExpenses.length} recurring transaction(s) were processed automatically.",
             );
+            // Push to in-app notification center
+            Provider.of<NotificationProvider>(
+              context,
+              listen: false,
+            ).addNotification(
+              title: 'Recurring Bills Processed',
+              body:
+                  '${newExpenses.length} recurring transaction(s) were auto-added to your expenses.',
+              type: AppNotificationType.recurringBill,
+            );
 
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -123,46 +136,73 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         }),
       ]);
 
-      // --- SMART ALERT LOGIC ---
+      // --- SMART ALERT LOGIC + IN-APP NOTIFICATIONS ---
       if (mounted) {
         final budgets = Provider.of<BudgetProvider>(
           context,
           listen: false,
         ).budgets;
+        final notifProv = Provider.of<NotificationProvider>(
+          context,
+          listen: false,
+        );
         final List<String> newAlerts = [];
 
         for (final b in budgets) {
           if (b.progress >= 1.0) {
+            final over = (b.spent - b.limit).toStringAsFixed(0);
             newAlerts.add(
-              "⚠️ You've exceeded your ${b.category} budget by \$${(b.spent - b.limit).toStringAsFixed(0)}!",
+              "You've exceeded your ${b.category} budget by \$$over!",
+            );
+            notifProv.addNotification(
+              title: 'Budget Exceeded: ${b.category}',
+              body:
+                  "You're \$$over over your \$${b.limit.toStringAsFixed(0)} ${b.category} budget.",
+              type: AppNotificationType.budgetAlert,
             );
           } else if (b.progress >= 0.85) {
+            final pct = (b.progress * 100).toStringAsFixed(0);
+            final remaining = (b.limit - b.spent).toStringAsFixed(0);
             newAlerts.add(
-              "⚠️ You're close to your ${b.category} limit (${(b.progress * 100).toStringAsFixed(0)}% used).",
+              "You're close to your ${b.category} limit ($pct% used).",
+            );
+            notifProv.addNotification(
+              title: 'Budget Warning: ${b.category}',
+              body:
+                  '$pct% of your ${b.category} budget used. Only \$$remaining remaining.',
+              type: AppNotificationType.budgetAlert,
             );
           }
         }
         setState(() => _alerts = newAlerts);
 
-        // Handle recurrence
-        ApiService().checkRecurringTransactions().then((newExpenses) {
-          if (newExpenses.isNotEmpty && mounted) {
-            // ... existing snackbar logic ...
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  "${newExpenses.length} recurring transaction(s) were auto-added.",
-                ),
-                behavior: SnackBarBehavior.floating,
-                backgroundColor: Theme.of(context).colorScheme.primary,
-              ),
+        // --- GOALS PROGRESS NOTIFICATIONS ---
+        final goals = Provider.of<GoalProvider>(context, listen: false).goals;
+        for (final g in goals) {
+          if (g.isCompleted) {
+            notifProv.addNotification(
+              title: 'Goal Achieved: ${g.title}',
+              body:
+                  'You\'ve fully funded "${g.title}". Celebrate and set your next goal!',
+              type: AppNotificationType.goalCompleted,
             );
-            Provider.of<ExpenseProvider>(
-              context,
-              listen: false,
-            ).fetchExpenses();
+          } else if (g.progress >= 0.75) {
+            final left = (g.targetAmount - g.currentAmount).toStringAsFixed(0);
+            notifProv.addNotification(
+              title: 'Almost There: ${g.title}',
+              body:
+                  '${(g.progress * 100).toStringAsFixed(0)}% funded! Only \$$left left to reach your goal.',
+              type: AppNotificationType.goalProgress,
+            );
+          } else if (g.progress >= 0.5) {
+            notifProv.addNotification(
+              title: 'Halfway There: ${g.title}',
+              body:
+                  'You\'re ${(g.progress * 100).toStringAsFixed(0)}% of the way to "${g.title}". Keep saving!',
+              type: AppNotificationType.goalProgress,
+            );
           }
-        });
+        }
       }
     } catch (e) {
       debugPrint("Fetch error: $e");
@@ -369,12 +409,62 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                             onPressed: () =>
                                 setState(() => _isSearching = true),
                           ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.notifications_none_rounded,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                            onPressed: () {},
+                          Consumer<NotificationProvider>(
+                            builder: (context, notifProv, _) {
+                              final unreadCount = notifProv.unreadCount;
+                              return Stack(
+                                children: [
+                                  IconButton(
+                                    icon: Icon(
+                                      unreadCount > 0
+                                          ? Icons.notifications_active_rounded
+                                          : Icons.notifications_none_rounded,
+                                      color: unreadCount > 0
+                                          ? colorScheme.primary
+                                          : colorScheme.onSurfaceVariant,
+                                    ),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const NotificationCenterScreen(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  if (unreadCount > 0)
+                                    Positioned(
+                                      right: 8,
+                                      top: 8,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: colorScheme.error,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: colorScheme.surface,
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            unreadCount > 9
+                                                ? '9+'
+                                                : '$unreadCount',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                              height: 1.0,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -518,6 +608,91 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       ],
                     ),
                   ),
+                ),
+              ),
+            ),
+
+            // Net Worth Card
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Consumer2<WalletProvider, DebtProvider>(
+                  builder: (context, wProv, dProv, _) {
+                    final totalWallets = wProv.wallets.fold(
+                      0.0,
+                      (s, w) => s + w.balance,
+                    );
+                    final totalDebts = dProv.debts.fold(0.0, (s, d) {
+                      if (d.status == 'pending') {
+                        return s + (d.isOwedByMe ? -d.amount : d.amount);
+                      }
+                      return s;
+                    });
+                    final netWorth = totalWallets + totalDebts;
+                    final isPositive = netWorth >= 0;
+
+                    return Card(
+                      elevation: 0,
+                      color: colorScheme.secondaryContainer.withOpacity(0.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: colorScheme.outlineVariant.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "NET WORTH",
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  currencyFormat.format(netWorth),
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                    color: isPositive
+                                        ? financeColors.income
+                                        : colorScheme.error,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: isPositive
+                                    ? financeColors.income.withOpacity(0.1)
+                                    : colorScheme.error.withOpacity(0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.account_balance_rounded,
+                                color: isPositive
+                                    ? financeColors.income
+                                    : colorScheme.error,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
