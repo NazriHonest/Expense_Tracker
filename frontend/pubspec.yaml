@@ -93,24 +93,24 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 
-# flutter_native_splash:
-#   color: "#FFFFFF"
-#   image: "assets/icons/splash_icon.png"
-#   android: true
-#   ios: true
-#   web: true
+flutter_native_splash:
+  color: "#0F172A"
+  image: "assets/icons/splash_icon.png"
+  android: true
+  ios: true
+  web: true
   
-#   android_12:
-#     # Use branding mode to prevent the circle
-#     image: "assets/icons/splash_icon.png"
-#     icon_background_color: "#FFFFFF"
+  android_12:
+    # Use branding mode to prevent the circle
+    image: "assets/icons/app_icon_foreground.png"
+    icon_background_color: "#0F172A"
 
 flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/icons/app_icon.png"
   min_sdk_android: 21
-  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_background: "#0F172A"
   # Use the same image for adaptive foreground
   adaptive_icon_foreground: "assets/icons/app_icon.png"
   remove_alpha_ios: true

@@ -619,6 +619,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ),
 
             // Net Worth Card
+            // Net Worth Card
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -647,10 +648,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              colorScheme.secondaryContainer.withValues(
-                                alpha: 0.5,
+                              colorScheme.tertiaryContainer.withValues(
+                                alpha: 0.6,
                               ),
-                              colorScheme.secondaryContainer.withValues(
+                              colorScheme.tertiaryContainer.withValues(
                                 alpha: 0.2,
                               ),
                             ],
@@ -659,9 +660,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                           ),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: colorScheme.outlineVariant.withValues(
-                              alpha: 0.3,
-                            ),
+                            color: colorScheme.tertiary.withValues(alpha: 0.3),
                           ),
                         ),
                         child: Padding(
@@ -725,7 +724,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 ),
               ),
             ),
-
             // Subscription Shortcut
             SliverToBoxAdapter(
               child: Padding(
