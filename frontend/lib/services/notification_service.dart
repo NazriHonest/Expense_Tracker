@@ -153,23 +153,6 @@ class NotificationService {
 
     int idCounter = 0;
 
-    // Send an immediate confirmation notification so they know it worked
-    await flutterLocalNotificationsPlugin.show(
-      id: 2099, // Unique ID for immediate confirmation
-      title: 'Hydration Reminders Active 💧',
-      body:
-          'You will receive reminders every $intervalMinutes minutes between $startHour:00 and $endHour:00.',
-      notificationDetails: const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'health_channel',
-          'Health Reminders',
-          importance: Importance.max,
-          priority: Priority.high,
-        ),
-        iOS: DarwinNotificationDetails(),
-      ),
-    );
-
     // Build the schedule starting from 7 AM today
     tz.TZDateTime scheduledTime = tz.TZDateTime(
       tz.local,

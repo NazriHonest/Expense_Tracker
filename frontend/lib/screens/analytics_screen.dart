@@ -1441,7 +1441,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     final incChange = lastMonthInc > 0
         ? ((thisMonthInc - lastMonthInc) / lastMonthInc * 100)
         : 0.0;
-    final isDark = theme.brightness == Brightness.dark;
+    //final isDark = theme.brightness == Brightness.dark;
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),

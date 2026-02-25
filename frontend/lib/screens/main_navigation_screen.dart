@@ -76,15 +76,57 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      // 1. Refresh Dynamic Categories First
-      await CategoryService.refreshCategories();
-      if (mounted) {
-        setState(() {
-          _categories = CategoryService.getCategoryNames(includeAll: true);
-        });
-      }
+      // Background non-blocking task for subscriptions
+      ApiService()
+          .checkRecurringTransactions()
+          .then((newExpenses) {
+            if (newExpenses.isNotEmpty && mounted) {
+              // Trigger Local Notification
+              NotificationService().showNotification(
+                id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+                title: "Bills Paid",
+                body:
+                    "${newExpenses.length} recurring transaction(s) were processed automatically.",
+              );
+              // Push to in-app notification center
+              Provider.of<NotificationProvider>(
+                context,
+                listen: false,
+              ).addNotification(
+                title: 'Recurring Bills Processed',
+                body:
+                    '${newExpenses.length} recurring transaction(s) were auto-added to your expenses.',
+                type: AppNotificationType.recurringBill,
+              );
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    "${newExpenses.length} recurring transaction(s) were auto-added.",
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                ),
+              );
+              // Refresh expenses to show the new ones
+              Provider.of<ExpenseProvider>(
+                context,
+                listen: false,
+              ).fetchExpenses();
+            }
+          })
+          .catchError((e) {
+            debugPrint("Recurring logic error: $e");
+          });
 
       await Future.wait([
+        CategoryService.refreshCategories().then((_) {
+          if (mounted) {
+            setState(() {
+              _categories = CategoryService.getCategoryNames(includeAll: true);
+            });
+          }
+        }),
         Provider.of<ExpenseProvider>(context, listen: false).fetchExpenses(),
         Provider.of<IncomeProvider>(context, listen: false).fetchIncomes(),
         Provider.of<BudgetProvider>(
@@ -98,42 +140,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           context,
           listen: false,
         ).fetchSubscriptions(),
-        ApiService().checkRecurringTransactions().then((newExpenses) {
-          if (newExpenses.isNotEmpty && mounted) {
-            // Trigger Local Notification
-            NotificationService().showNotification(
-              id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-              title: "Bills Paid",
-              body:
-                  "${newExpenses.length} recurring transaction(s) were processed automatically.",
-            );
-            // Push to in-app notification center
-            Provider.of<NotificationProvider>(
-              context,
-              listen: false,
-            ).addNotification(
-              title: 'Recurring Bills Processed',
-              body:
-                  '${newExpenses.length} recurring transaction(s) were auto-added to your expenses.',
-              type: AppNotificationType.recurringBill,
-            );
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  "${newExpenses.length} recurring transaction(s) were auto-added.",
-                ),
-                behavior: SnackBarBehavior.floating,
-                backgroundColor: Theme.of(context).colorScheme.primary,
-              ),
-            );
-            // Refresh expenses to show the new ones
-            Provider.of<ExpenseProvider>(
-              context,
-              listen: false,
-            ).fetchExpenses();
-          }
-        }),
       ]);
 
       // --- SMART ALERT LOGIC + IN-APP NOTIFICATIONS ---
@@ -594,14 +600,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                               Icons.arrow_downward_rounded,
                               "Income",
                               incProv.totalIncome,
-                              financeColors.income,
+                              financeColors.income, // Using theme color
                             ),
                             const SizedBox(width: 40),
                             _miniStat(
                               Icons.arrow_upward_rounded,
                               "Expenses",
                               expProv.totalSpent,
-                              financeColors.expense,
+                              financeColors.expense, // Using theme color
                             ),
                           ],
                         ),
@@ -632,63 +638,86 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     final isPositive = netWorth >= 0;
 
                     return Card(
-                      elevation: 0,
-                      color: colorScheme.secondaryContainer.withOpacity(0.5),
+                      elevation: 2,
+                      shadowColor: colorScheme.shadow,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(
-                          color: colorScheme.outlineVariant.withOpacity(0.3),
-                        ),
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 16,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              colorScheme.secondaryContainer.withValues(
+                                alpha: 0.5,
+                              ),
+                              colorScheme.secondaryContainer.withValues(
+                                alpha: 0.2,
+                              ),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: colorScheme.outlineVariant.withValues(
+                              alpha: 0.3,
+                            ),
+                          ),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "NET WORTH",
-                                  style: TextStyle(
-                                    color: colorScheme.onSurfaceVariant,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.2,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "NET WORTH",
+                                    style: TextStyle(
+                                      color: colorScheme.onSurfaceVariant,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.2,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  currencyFormat.format(netWorth),
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w800,
-                                    color: isPositive
-                                        ? financeColors.income
-                                        : colorScheme.error,
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    currencyFormat.format(netWorth),
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w800,
+                                      color: isPositive
+                                          ? financeColors.income
+                                          : colorScheme.error,
+                                    ),
                                   ),
+                                ],
+                              ),
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: isPositive
+                                      ? financeColors.income.withValues(
+                                          alpha: 0.1,
+                                        )
+                                      : colorScheme.error.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                  shape: BoxShape.circle,
                                 ),
-                              ],
-                            ),
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: isPositive
-                                    ? financeColors.income.withOpacity(0.1)
-                                    : colorScheme.error.withOpacity(0.1),
-                                shape: BoxShape.circle,
+                                child: Icon(
+                                  Icons.account_balance_rounded,
+                                  color: isPositive
+                                      ? financeColors.income
+                                      : colorScheme.error,
+                                ),
                               ),
-                              child: Icon(
-                                Icons.account_balance_rounded,
-                                color: isPositive
-                                    ? financeColors.income
-                                    : colorScheme.error,
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     );

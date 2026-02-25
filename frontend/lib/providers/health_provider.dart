@@ -37,21 +37,18 @@ class HealthProvider with ChangeNotifier {
 
       // Fetch past 7 days for charts
       final now = DateTime.now();
-      _weeklyMetrics = [];
-      for (int i = 6; i >= 0; i--) {
-        final date = now.subtract(Duration(days: i));
+
+      final futures = List.generate(7, (i) async {
+        final date = now.subtract(Duration(days: 6 - i));
         try {
           final metrics = await _apiService.getHealthMetrics(date);
-          if (metrics != null) {
-            _weeklyMetrics.add(metrics);
-          } else {
-            // Add empty metrics for missing days
-            _weeklyMetrics.add(HealthMetrics(date: date));
-          }
+          return metrics ?? HealthMetrics(date: date);
         } catch (e) {
-          _weeklyMetrics.add(HealthMetrics(date: date));
+          return HealthMetrics(date: date);
         }
-      }
+      });
+
+      _weeklyMetrics = await Future.wait(futures);
 
       // Schedule notifications if needed (could be optimized to not reschedule every load)
       if (_settings != null) {
