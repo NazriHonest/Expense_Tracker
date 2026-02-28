@@ -1,0 +1,53 @@
+# Comprehensive App Feature Review
+
+Below is a detailed review of the current features available in your Expense Tracker app, based on an analysis of both the Flutter frontend and the FastAPI backend. I have also included a list of suggested missing features that could make the app even more powerful.
+
+## 🚀 Current Features
+
+### 1. Core Financial Tracking
+*   **Income & Expense Logging:** Add, view, and manage income and expenses categorized by types.
+*   **Category Management:** Custom management of categories for transactions.
+*   **Budgeting:** Set and manage monthly budgets per category, with spending limit alerts.
+*   **Wallet / Account Management:** Track balances across different wallets or accounts.
+
+### 2. Advanced Financial Tools
+*   **Savings Goals:** Create specific savings targets, set dates, and track progress toward them.
+*   **Subscription Management:** Track recurring costs (weekly, monthly, yearly) and see active vs. inactive subscriptions.
+*   **Debt Tracking:** Keep a record of money you owe or money owed to you.
+*   **Analytics & Reports:** Detailed visual breakdowns, charts, and financial reports of spending and income.
+*   **Net Worth Tracking:** View your overall financial health by summarizing assets and liabilities.
+
+### 3. Utility & User Experience
+*   **User Authentication:** Secure email/password registration and login.
+*   **Data Export:** Export financial data seamlessly, including downloading reports.
+*   **Notifications:** A centralized Notification Center for alerts (e.g., budget limits, daily reminders).
+*   **Health Integrations:** Daily hydration reminders scheduled using local device timezones.
+*   **Theming & Profile:** Customizable themes (Dark/Light mode via ThemeProvider) and user profile management.
+
+---
+
+## 💡 Missing / Potential Future Features
+
+If you are looking to expand the application further, here are some highly valuable features you could implement next:
+
+### 1. Automation & Integration
+*   **Bank Syncing (Plaid / Yodlee):** Automatically pull in transactions from real bank accounts instead of manual entry.
+*   **Receipt Scanning (OCR):** Allow users to take a photo of a receipt to automatically extract the amount, date, and category.
+*   **Recurring Expenses (non-subscription):** Automatically log regular bills (like rent or utilities) that aren't necessarily "subscriptions."
+
+### 2. Advanced Analytics & Financial Growth
+*   **Investment Portfolio Tracking:** A dedicated section to track stocks, crypto, mutual funds, or real estate values.
+*   **Cash Flow Forecasting:** AI-driven predictions of your account balances for the end of the month based on your spending habits.
+*   **Multi-Currency Support:** Essential for users who travel or hold different accounts in various currencies (with live exchange rate conversion).
+
+### 3. Social & Sharing
+*   **Bill Splitting:** Ability to select an expense and split it with friends, sending them a request or tracking their owed share.
+*   **Joint Accounts / Family Sharing:** Allow multiple users (e.g., spouses) to contribute to and view the same budget or wallet.
+
+### 4. Security & Privacy
+*   **Two-Factor Authentication (2FA) & Biometrics:** Add FaceID/Fingerprint login on top of the standard email/password authentication.
+*   **Privacy Blur / Stealth Mode:** A quick toggle to blur out sensitive numbers (balances, totals) when using the app in public.
+
+### 5. Enhanced Tracking
+*   **Geolocation Tagging:** Automatically or manually attach a map location to where an expense occurred.
+*   **Tags/Labels:** In addition to categories, allow multiple tags (e.g., #trip_to_paris, #tax_deductible) for more granular reporting.

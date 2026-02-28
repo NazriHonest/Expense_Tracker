@@ -147,7 +147,7 @@ class HealthProvider with ChangeNotifier {
     if (_settings!.reminderInterval > 0) {
       _notificationService.scheduleDailyHydration(
         _settings!.reminderInterval,
-        username,
+        username.split('@')[0],
       );
     } else {
       _notificationService.cancelAll();

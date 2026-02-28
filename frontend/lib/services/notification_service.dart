@@ -1,6 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter_timezone/flutter_timezone.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -12,6 +13,9 @@ class NotificationService {
 
   Future<void> initialize() async {
     tz.initializeTimeZones();
+    final timeZoneInfo = await FlutterTimezone.getLocalTimezone();
+    final String timeZoneName = timeZoneInfo.identifier;
+    tz.setLocalLocation(tz.getLocation(timeZoneName));
 
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -125,6 +129,7 @@ class NotificationService {
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+
       payload: payload,
     );
   }
@@ -160,7 +165,7 @@ class NotificationService {
       now.month,
       now.day,
       startHour,
-      0, // minute
+      0,
     );
 
     final messages = [
@@ -206,7 +211,7 @@ class NotificationService {
             ),
           ),
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          matchDateTimeComponents: DateTimeComponents.time, // 🔁 Repeat daily
+          matchDateTimeComponents: DateTimeComponents.time,
         );
 
         idCounter++;
