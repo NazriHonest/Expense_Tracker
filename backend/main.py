@@ -47,11 +47,8 @@ async def shutdown_event():
     await Database.disconnect()
 
 
+# Root endpoint - FastAPI handles HEAD automatically
 @app.get("/", tags=["Root"])
-async def root():
-    return {"message": "Expense Tracker API Running", "version": "2.0.0"}
-
-@app.head("/", tags=["Root"]) 
 async def root():
     return {"message": "Expense Tracker API Running", "version": "2.0.0"}
 
