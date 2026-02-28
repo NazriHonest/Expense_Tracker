@@ -78,9 +78,3 @@ app.include_router(debts_router)
 app.include_router(categories_router)
 app.include_router(health_router)
 app.include_router(analytics_router)
-
-if __name__ == "__main__":
-    import uvicorn
-    # Render provides the PORT environment variable. Default to 8000 for local development.
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
