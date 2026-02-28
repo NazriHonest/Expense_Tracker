@@ -26,6 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
     FocusScope.of(context).unfocus();
     HapticFeedback.mediumImpact();
 
@@ -41,18 +42,37 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       print('LoginScreen: Caught error from authProvider: $e');
       if (!mounted) return;
-      _showErrorSnackBar(e.toString());
+
+      // Extract the error message
+      String errorMessage = e.toString();
+
+      // Remove the "Exception: " prefix if present
+      if (errorMessage.startsWith('Exception: ')) {
+        errorMessage = errorMessage.substring(11);
+      }
+
+      _showErrorSnackBar(errorMessage);
     }
   }
 
-  void _showErrorSnackBar(String error) {
+  void _showErrorSnackBar(String errorMessage) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: Theme.of(context).colorScheme.error,
+        backgroundColor: colorScheme.error,
         content: Text(
-          error.contains('401') ? 'Invalid credentials.' : 'Login failed',
-          style: TextStyle(color: Theme.of(context).colorScheme.onError),
+          errorMessage,
+          style: TextStyle(color: colorScheme.onError),
+        ),
+        duration: const Duration(
+          seconds: 5,
+        ), // Longer duration for better readability
+        action: SnackBarAction(
+          label: 'Retry',
+          textColor: colorScheme.onError,
+          onPressed: _submit,
         ),
       ),
     );

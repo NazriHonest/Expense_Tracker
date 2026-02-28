@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from typing import Optional
 from datetime import date
 
@@ -18,6 +18,27 @@ router = APIRouter(prefix="/health", tags=["Health"])
 
 def get_health_repository(pool: asyncpg.Pool = Depends(get_db_pool)) -> HealthRepository:
     return HealthRepository(pool)
+
+
+# Add a simple health check endpoint
+@router.get("/")
+@router.head("/")  # Also handle HEAD requests
+async def health_check():
+    """
+    Simple health check endpoint for monitoring.
+    Returns 200 OK if the server is running.
+    """
+    return {"status": "healthy", "service": "expense-tracker-api"}
+
+
+# Alternative lightweight ping endpoint (even faster)
+@router.get("/ping")
+@router.head("/ping")
+async def ping():
+    """
+    Ultra-lightweight ping endpoint for frequent health checks.
+    """
+    return Response(status_code=200)
 
 
 @router.get("/metrics/{date_val}", response_model=Optional[HealthMetricsResponse])

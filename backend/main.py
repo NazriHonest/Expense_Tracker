@@ -51,6 +51,10 @@ async def shutdown_event():
 async def root():
     return {"message": "Expense Tracker API Running", "version": "2.0.0"}
 
+@app.head("/", tags=["Root"]) 
+async def root():
+    return {"message": "Expense Tracker API Running", "version": "2.0.0"}
+
 
 # Top-level /balance route (Flutter clients use this path)
 from repositories.expense_repository import ExpenseRepository
