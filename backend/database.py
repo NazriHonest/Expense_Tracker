@@ -12,8 +12,7 @@ class Database:
     @classmethod
     async def connect(cls):
         if cls.pool is None:
-            # Add ssl='require' for Neon.tech
-            cls.pool = await asyncpg.create_pool(DATABASE_URL, ssl='require')
+            cls.pool = await asyncpg.create_pool(DATABASE_URL)
             print("Database connection pool created.")
 
     @classmethod
