@@ -17,6 +17,8 @@ class ApiService {
   static AuthProvider? _authProvider;
 
   static const String baseUrl = 'https://finance-tracker-app-0qmt.onrender.com';
+  // Use 10.0.2.2 for Android emulators to access the host machine's localhost
+  //static const String baseUrl = 'http://10.0.2.2:8000';
 
   ApiService._internal() {
     _dio = Dio(
@@ -58,6 +60,7 @@ class ApiService {
   // --- Auth Endpoints ---
   Future<String> login(String email, String password) async {
     try {
+      print('ApiService: Sending login request to $_dio for email $email');
       final response = await _dio.post(
         '/auth/token',
         data: {'username': email, 'password': password},
@@ -65,7 +68,20 @@ class ApiService {
       );
       return response.data['access_token'];
     } on DioException catch (e) {
-      throw Exception(e.response?.data['detail'] ?? 'Login failed');
+      print('ApiService: DioException type: ${e.type}');
+      print('ApiService: DioException message: ${e.message}');
+      print('ApiService: DioException error: ${e.error}');
+      print(
+        'ApiService: DioException response: ${e.response?.statusCode} - ${e.response?.data}',
+      );
+
+      throw Exception(
+        e.response?.data['detail'] ??
+            'Login failed. Network error: ${e.message}',
+      );
+    } catch (e) {
+      print('ApiService: Unknown error caught during login: $e');
+      rethrow;
     }
   }
 

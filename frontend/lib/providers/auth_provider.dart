@@ -49,7 +49,9 @@ class AuthProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
+      print('AuthProvider: Attempting to login with email: $email');
       final token = await _apiService.login(email, password);
+      print('AuthProvider: Login successful, token received: $token');
       _token = token;
 
       // Persist token for auto-login
@@ -57,6 +59,7 @@ class AuthProvider with ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
+      print('AuthProvider: Login failed with error: $e');
       rethrow; // Pass error to UI for SnackBar display
     } finally {
       _isLoading = false;

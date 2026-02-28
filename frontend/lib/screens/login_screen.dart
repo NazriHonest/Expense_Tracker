@@ -32,11 +32,14 @@ class _LoginScreenState extends State<LoginScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     try {
+      print('LoginScreen: Submitting login form');
       await authProvider.login(
         _emailController.text.trim(),
         _passwordController.text.trim(),
       );
+      print('LoginScreen: Successfully logged in');
     } catch (e) {
+      print('LoginScreen: Caught error from authProvider: $e');
       if (!mounted) return;
       _showErrorSnackBar(e.toString());
     }
