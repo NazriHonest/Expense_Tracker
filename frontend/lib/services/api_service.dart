@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:flutter/material.dart';
 import '../models/expense.dart';
 import '../models/health.dart';
@@ -30,6 +32,27 @@ class ApiService {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
+      ),
+    );
+
+    // Override the HTTP client to bypass SSL certificate errors for debugging
+    (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+      final client = HttpClient();
+      client.badCertificateCallback = (cert, host, port) {
+        print(
+          'ApiService: Bad certificate for $host:$port — bypassing for debug',
+        );
+        return true;
+      };
+      return client;
+    };
+
+    _dio.interceptors.add(
+      LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+        error: true,
+        logPrint: (o) => print('[DIO] $o'),
       ),
     );
 
