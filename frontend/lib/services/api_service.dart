@@ -58,20 +58,28 @@ class ApiService {
   // --- Auth Endpoints ---
   Future<String> login(String email, String password) async {
     try {
-      print('ApiService: Sending login request to $_dio for email $email');
       final response = await _dio.post(
         '/auth/token',
-        data: {'username': email, 'password': password},
-        options: Options(contentType: Headers.formUrlEncodedContentType),
+        data: FormData.fromMap({
+          'username': email,
+          'password': password,
+        }),
+        options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+          headers: {
+            'Accept': 'application/json',
+          },
+        ),
       );
       return response.data['access_token'];
     } on DioException catch (e) {
-      print(
-        'ApiService: DioException caught during login: ${e.response?.statusCode} - ${e.response?.data}',
-      );
-      throw Exception(e.response?.data['detail'] ?? 'Login failed');
+      final errorMessage = e.response?.data?['detail'] ??
+                          e.response?.data?.toString() ??
+                          'Login failed';
+      debugPrint('ApiService: Login error - $errorMessage');
+      throw Exception(errorMessage);
     } catch (e) {
-      print('ApiService: Unknown error caught during login: $e');
+      debugPrint('ApiService: Unknown error during login: $e');
       rethrow;
     }
   }

@@ -8,17 +8,49 @@ class HealthProvider with ChangeNotifier {
   HealthSettings? _settings;
   List<HealthMetrics> _weeklyMetrics = [];
   bool _isLoading = false;
+  bool _isInitialized = false;
 
   HealthMetrics? get todayMetrics => _todayMetrics;
   HealthSettings? get settings => _settings;
   List<HealthMetrics> get weeklyMetrics => _weeklyMetrics;
   bool get isLoading => _isLoading;
+  bool get isInitialized => _isInitialized;
 
   final ApiService _apiService = ApiService();
   final NotificationService _notificationService = NotificationService();
 
   HealthProvider() {
     _notificationService.initialize();
+    _scheduleRemindersOnStartup();
+  }
+
+  /// Schedule reminders on app startup without waiting for Health screen to open.
+  /// This ensures notifications work even when the app is closed.
+  Future<void> _scheduleRemindersOnStartup() async {
+    if (_isInitialized) return;
+
+    try {
+      _settings = await _apiService.getHealthSettings();
+
+      if (_settings != null) {
+        final username = await _apiService.getUsername() ?? 'Friend';
+
+        if (_settings!.reminderInterval > 0) {
+          await _notificationService.scheduleDailyHydration(
+            _settings!.reminderInterval,
+            username,
+          );
+          debugPrint('✅ Hydration reminders scheduled on startup (interval: ${_settings!.reminderInterval} min)');
+        } else {
+          await _notificationService.cancelAll();
+          debugPrint('❌ Hydration reminders disabled (interval: 0)');
+        }
+      }
+    } catch (e) {
+      debugPrint("Error scheduling reminders on startup: $e");
+    } finally {
+      _isInitialized = true;
+    }
   }
 
   Future<void> loadData() async {

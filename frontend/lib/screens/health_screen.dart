@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/health_provider.dart';
 import '../models/health.dart';
+import '../services/notification_service.dart';
 
 class HealthScreen extends StatefulWidget {
   const HealthScreen({super.key});
@@ -1025,6 +1026,24 @@ class _HealthScreenState extends State<HealthScreen> {
                       setState(() => exercise = val);
                     },
                   );
+                },
+              ),
+              const SizedBox(height: 16),
+              // Samsung Notification Settings Button
+              ListTile(
+                leading: const Icon(Icons.battery_charging_full, color: Colors.green),
+                title: Text(
+                  'Samsung Notification Settings',
+                  style: TextStyle(color: colorScheme.onSurface),
+                ),
+                subtitle: Text(
+                  'Enable for reliable reminders',
+                  style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12),
+                ),
+                trailing: Icon(Icons.arrow_forward_ios, size: 16, color: colorScheme.onSurfaceVariant),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  NotificationService().showSamsungPermissionDialog(context);
                 },
               ),
             ],

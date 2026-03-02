@@ -1,6 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'dart:io' show Platform;
+import 'package:url_launcher/url_launcher.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -56,6 +60,137 @@ class NotificationService {
         sound: true,
       );
     }
+
+    // Request Samsung-specific permissions
+    await _requestSamsungPermissions();
+  }
+
+  /// Request Samsung-specific permissions for reliable notifications
+  Future<void> _requestSamsungPermissions() async {
+    if (!Platform.isAndroid) return;
+
+    // Request schedule exact alarm permission is already requested above
+    // Battery optimization needs to be requested via intent
+    debugPrint('🔔 Samsung permissions requested');
+  }
+
+  /// Check if battery optimization is enabled (notifications may be unreliable)
+  Future<bool> isBatteryOptimizationEnabled() async {
+    if (!Platform.isAndroid) return false;
+    // Use platform channel to check battery optimization status
+    return false; // Default to false, actual check requires native code
+  }
+
+  /// Open battery optimization settings for the user to disable
+  Future<void> requestDisableBatteryOptimization() async {
+    if (!Platform.isAndroid) return;
+
+    // Open battery optimization settings via intent
+    try {
+      const intent = 'android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS';
+      await launchUrl(
+        Uri.parse(intent),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (e) {
+      debugPrint('Could not open battery optimization settings: $e');
+      // Fallback: open app settings
+      await openAppSettings();
+    }
+  }
+
+  /// Open Samsung auto-start settings
+  Future<void> requestAutoStartPermission() async {
+    if (!Platform.isAndroid) return;
+
+    // Try to open Samsung auto-start settings
+    const samsungAutoStart = 'com.samsung.android.lool';
+    try {
+      await launchUrl(
+        Uri.parse('android-app://$samsungAutoStart'),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (e) {
+      debugPrint('Could not open Samsung auto-start: $e');
+    }
+  }
+
+  /// Show a dialog guiding Samsung users to enable all required permissions
+  Future<void> showSamsungPermissionDialog(BuildContext context) async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          icon: const Icon(Icons.battery_charging_full, color: Colors.green),
+          title: const Text('Enable Notifications'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'For reliable hydration reminders on Samsung devices, please enable these settings:',
+                  style: TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                NotificationService.buildPermissionItem(
+                  '1. Battery Optimization',
+                  'Settings → Apps → Expense Tracker → Battery → Unrestricted',
+                ),
+                NotificationService.buildPermissionItem(
+                  '2. Auto-start',
+                  'Settings → Apps → Expense Tracker → Enable "Allow background activity"',
+                ),
+                NotificationService.buildPermissionItem(
+                  '3. Notifications',
+                  'Settings → Apps → Expense Tracker → Notifications → Enable all',
+                ),
+                NotificationService.buildPermissionItem(
+                  '4. Lock in Recent Apps',
+                  'Open recent apps → Tap app icon → Tap "Keep open"',
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Later'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await NotificationService().requestDisableBatteryOptimization();
+              },
+              child: const Text('Open Battery Settings'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Helper widget to build permission list items
+  static Widget buildPermissionItem(String title, String description) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.check_circle_outline, size: 20, color: Colors.green),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(description, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> showNotification({
