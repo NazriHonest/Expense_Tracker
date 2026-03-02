@@ -1,12 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List
-from datetime import datetime
 
 from repositories.expense_repository import ExpenseRepository
 from schemas.savings_goal_schema import SavingsGoalCreate, SavingsGoalResponse, ContributionRequest
 from schemas.expense_schema import ExpenseCreate, ExpenseResponse
 from auth import get_current_user_id
 from database import get_db_pool
+from utils import get_utc_now
 import asyncpg
 
 router = APIRouter(prefix="/goals", tags=["Savings Goals"])
@@ -48,7 +48,7 @@ async def contribute_to_goal(
         title="Savings Contribution",
         amount=payload.amount,
         category="Savings",
-        date=datetime.now(),
+        date=get_utc_now(),
         notes=f"Contribution to goal ID: {goal_id}",
     )
     await repo.create_expense(expense_data, user_id)

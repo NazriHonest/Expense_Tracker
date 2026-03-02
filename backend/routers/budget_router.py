@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
-from datetime import datetime
 
 from repositories.expense_repository import ExpenseRepository
 from schemas.budget_schema import BudgetCreate, BudgetResponse
 from auth import get_current_user_id
 from database import get_db_pool
+from utils import get_utc_now
 import asyncpg
 
 router = APIRouter(prefix="/budgets", tags=["Budgets"])
@@ -38,7 +38,7 @@ async def get_budget_status(
     repo: ExpenseRepository = Depends(get_repository),
     user_id: int = Depends(get_current_user_id),
 ):
-    now = datetime.now()
+    now = get_utc_now()
     target_month = month or now.month
     target_year = year or now.year
     return await repo.get_budget_status(user_id, target_month, target_year)

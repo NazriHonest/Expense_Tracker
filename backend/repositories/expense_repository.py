@@ -9,6 +9,7 @@ from schemas.user_schema import UserCreate, UserResponse, Token
 from schemas.debt_schema import DebtCreate, DebtUpdate
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from utils import normalize_datetime, get_utc_now
 
 
 class ExpenseRepository:
@@ -96,10 +97,8 @@ class ExpenseRepository:
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING id, title, amount, category, date, notes, wallet_id;
         """
-        date_val = expense.date or datetime.now()
-        if date_val.tzinfo is not None:
-            date_val = date_val.replace(tzinfo=None)
-            
+        date_val = normalize_datetime(expense.date) or get_utc_now()
+
         async with self.pool.acquire() as connection:
             # First, check and deduct wallet balance if wallet_id is provided
             if expense.wallet_id:
@@ -146,14 +145,12 @@ class ExpenseRepository:
 
     async def update_expense(self, expense_id: int, expense: ExpenseCreate, user_id: int) -> ExpenseResponse:
         query = """
-            UPDATE expenses 
+            UPDATE expenses
             SET title = $1, amount = $2, category = $3, date = $4, notes = $5
             WHERE id = $6 AND user_id = $7
             RETURNING id, title, amount, category, date, notes;
         """
-        date_val = expense.date or datetime.now()
-        if date_val.tzinfo is not None:
-             date_val = date_val.replace(tzinfo=None)
+        date_val = normalize_datetime(expense.date) or get_utc_now()
 
         async with self.pool.acquire() as connection:
             row = await connection.fetchrow(
@@ -170,10 +167,8 @@ class ExpenseRepository:
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING id, title, amount, category, date, notes, wallet_id;
         """
-        date_val = income.date or datetime.now()
-        if date_val.tzinfo is not None:
-            date_val = date_val.replace(tzinfo=None)
-            
+        date_val = normalize_datetime(income.date) or get_utc_now()
+
         async with self.pool.acquire() as connection:
             if income.wallet_id:
                 await connection.execute("UPDATE wallets SET balance = balance + $1 WHERE id = $2 AND user_id = $3", income.amount, income.wallet_id, user_id)
@@ -191,14 +186,12 @@ class ExpenseRepository:
 
     async def update_income(self, income_id: int, income, user_id: int):
         query = """
-            UPDATE income 
+            UPDATE income
             SET title = $1, amount = $2, category = $3, date = $4, notes = $5
             WHERE id = $6 AND user_id = $7
             RETURNING id, title, amount, category, date, notes;
         """
-        date_val = income.date or datetime.now()
-        if date_val.tzinfo is not None:
-             date_val = date_val.replace(tzinfo=None)
+        date_val = normalize_datetime(income.date) or get_utc_now()
 
         async with self.pool.acquire() as connection:
             row = await connection.fetchrow(
@@ -238,8 +231,8 @@ class ExpenseRepository:
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING id, title, target_amount, current_amount, category, target_date, color_value;
         """
-    
-        target_date = goal.target_date.replace(tzinfo=None) if goal.target_date.tzinfo else goal.target_date
+
+        target_date = normalize_datetime(goal.target_date)
 
         async with self.pool.acquire() as connection:
             # Pass only the 7 parameters (exclude goal_id)
@@ -378,10 +371,10 @@ class ExpenseRepository:
             RETURNING id, title, amount, start_date, category, frequency, is_active;
         """
         # Calculate next_payment_date - if start_date is in future, use it. If past, find next occurrence.
-        date_val = sub.start_date.replace(tzinfo=None) if sub.start_date.tzinfo else sub.start_date
-        now = datetime.now()
+        date_val = normalize_datetime(sub.start_date)
+        now = get_utc_now()
         next_payment = date_val
-        
+
         # If start date is in the past, move next_payment to future or today?
         # Standard behavior: subscriptions start on start_date. If start date is past, we assume it was already paid?
         # Or processed immediately. For simplicity, let's say next payment is start_date if future, else...
@@ -422,12 +415,12 @@ class ExpenseRepository:
 
     async def update_subscription(self, sub_id: int, sub: SubscriptionCreate, user_id: int) -> Optional[SubscriptionResponse]:
         query = """
-            UPDATE subscriptions 
+            UPDATE subscriptions
             SET title = $1, amount = $2, start_date = $3, category = $4, frequency = $5, is_active = $6
             WHERE id = $7 AND user_id = $8
             RETURNING id, title, amount, start_date, category, frequency, is_active;
         """
-        date_val = sub.start_date.replace(tzinfo=None) if sub.start_date.tzinfo else sub.start_date
+        date_val = normalize_datetime(sub.start_date)
 
         async with self.pool.acquire() as connection:
             row = await connection.fetchrow(
@@ -448,14 +441,14 @@ class ExpenseRepository:
 
     async def check_recurring_transactions(self, user_id: int):
         """Checks for due subscriptions and generates expenses."""
-        now = datetime.now()
-        
+        now = get_utc_now()
+
         # Select active subscriptions where next_payment_date <= NOW
         query = """
-            SELECT * FROM subscriptions 
+            SELECT * FROM subscriptions
             WHERE user_id = $1 AND is_active = TRUE AND next_payment_date <= $2
         """
-        
+
         created_expenses = []
         
         async with self.pool.acquire() as connection:

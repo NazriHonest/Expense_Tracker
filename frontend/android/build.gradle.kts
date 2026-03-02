@@ -3,6 +3,17 @@ allprojects {
         google()
         mavenCentral()
     }
+
+    // Fix for isar_flutter_libs namespace issue
+    subprojects {
+        afterEvaluate {
+            if (project.name == "isar_flutter_libs" && project.hasProperty("android")) {
+                project.extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)?.apply {
+                    namespace = "com.isar.flutter_libs"
+                }
+            }
+        }
+    }
 }
 
 val newBuildDir: Directory =
