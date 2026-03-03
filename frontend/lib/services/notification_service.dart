@@ -282,21 +282,11 @@ class NotificationService {
 
     final now = tz.TZDateTime.now(tz.local);
 
-    // Define daily window: 7 AM to 11 PM
+    // Define daily window: 7 AM to 11 PM (stops at 23:00, does not go past midnight)
     const startHour = 7;
     const endHour = 23;
 
     int idCounter = 0;
-
-    // Build the schedule starting from 7 AM today
-    tz.TZDateTime scheduledTime = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      startHour,
-      0, // minute
-    );
 
     final messages = [
       '$username, time to drink water 💧',
@@ -308,47 +298,55 @@ class NotificationService {
       'Don\'t forget to drink water, $username!',
     ];
 
-    // Schedule a notification for each slot in the daily window.
-    while (scheduledTime.hour < endHour && idCounter < 100) {
-      // Ensure the first scheduled time is in the future
-      tz.TZDateTime targetTime = scheduledTime;
+    // Generate all time slots for one day (7 AM to 11 PM)
+    final todaySlots = <tz.TZDateTime>[];
+    var slotTime = tz.TZDateTime(tz.local, now.year, now.month, now.day, startHour, 0);
+
+    while (slotTime.hour < endHour) {
+      todaySlots.add(slotTime);
+      slotTime = slotTime.add(Duration(minutes: intervalMinutes));
+    }
+
+    // Schedule each slot
+    for (final slot in todaySlots) {
+      if (idCounter >= 100) break;
+
+      tz.TZDateTime targetTime = slot;
+
+      // If this slot time has already passed today, schedule for tomorrow
       if (targetTime.isBefore(now)) {
-        // Move to tomorrow at the same time
         targetTime = targetTime.add(const Duration(days: 1));
       }
 
-      // Only schedule if still within today's window after adjustment
-      if (targetTime.isAfter(now)) {
-        await flutterLocalNotificationsPlugin.zonedSchedule(
-          id: 2000 + idCounter,
-          title: 'Hydration Reminder 💧',
-          body: messages[idCounter % messages.length],
-          scheduledDate: targetTime,
-          notificationDetails: const NotificationDetails(
-            android: AndroidNotificationDetails(
-              'health_channel',
-              'Health Reminders',
-              channelDescription: 'Daily hydration reminders',
-              importance: Importance.max,
-              priority: Priority.high,
-              enableVibration: true,
-              playSound: true,
-            ),
-            iOS: DarwinNotificationDetails(
-              presentAlert: true,
-              presentBadge: true,
-              presentSound: true,
-            ),
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        id: 2000 + idCounter,
+        title: 'Hydration Reminder 💧',
+        body: messages[idCounter % messages.length],
+        scheduledDate: targetTime,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'health_channel',
+            'Health Reminders',
+            channelDescription: 'Daily hydration reminders',
+            importance: Importance.max,
+            priority: Priority.high,
+            enableVibration: true,
+            playSound: true,
           ),
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          matchDateTimeComponents: DateTimeComponents.time, // 🔁 Repeat daily
-        );
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time, // 🔁 Repeat daily
+      );
 
-        idCounter++;
-      }
-
-      scheduledTime = scheduledTime.add(Duration(minutes: intervalMinutes));
+      idCounter++;
     }
+
+    debugPrint('💧 Scheduled $idCounter hydration reminders from ${startHour}:00 to ${endHour}:00 (interval: ${intervalMinutes} min)');
   }
 
   Future<void> cancelAll() async {

@@ -1,16 +1,23 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
 allprojects {
     repositories {
         google()
         mavenCentral()
     }
+}
 
-    // Fix for isar_flutter_libs namespace issue
+// Fix for isar_flutter_libs namespace issue (AGP 8.x compatibility)
+gradle.projectsEvaluated {
     subprojects {
-        afterEvaluate {
-            if (project.name == "isar_flutter_libs" && project.hasProperty("android")) {
-                project.extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)?.apply {
-                    namespace = "com.isar.flutter_libs"
-                }
+        if (name == "isar_flutter_libs") {
+            extensions.findByType<com.android.build.gradle.LibraryExtension>()?.apply {
+                namespace = "com.isar.flutter_libs"
             }
         }
     }

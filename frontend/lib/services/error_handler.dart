@@ -198,8 +198,7 @@ class ErrorHandler {
     return counts;
   }
 
-  @override
-  // ignore: override_on_non_overriding_member
+  /// Dispose resources
   void dispose() {
     _errorController.close();
   }
