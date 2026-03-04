@@ -37,8 +37,16 @@ void main() async {
   // 3. Initialize Notifications
   await NotificationService().initialize();
 
-  // 4. Optional: Try auto-login before app launch for a smoother splash
+  // 4. Create HealthProvider early so we can wire auth into it
+  final healthProvider = HealthProvider();
+  healthProvider.setAuthProvider(authProvider);
+
+  // 5. Try auto-login, then safely schedule reminders only if authenticated
   await authProvider.tryAutoLogin();
+  if (authProvider.isAuth) {
+    // Token exists — safe to fetch health settings and schedule hydration
+    healthProvider.scheduleRemindersIfAuthenticated();
+  }
 
   runApp(
     MultiProvider(
@@ -81,7 +89,7 @@ void main() async {
             return previous ?? SubscriptionProvider();
           },
         ),
-        ChangeNotifierProvider(create: (_) => HealthProvider()),
+        ChangeNotifierProvider.value(value: healthProvider),
         ChangeNotifierProvider(create: (_) => WalletProvider(ApiService())),
         ChangeNotifierProvider(create: (_) => DebtProvider(ApiService())),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),

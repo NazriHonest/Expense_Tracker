@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/health.dart';
+import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
 
@@ -19,15 +20,32 @@ class HealthProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
   final NotificationService _notificationService = NotificationService();
 
-  HealthProvider() {
-    _notificationService.initialize();
-    _scheduleRemindersOnStartup();
+  AuthProvider? _authProvider;
+
+  /// Call this from main.dart (or via Provider) after AuthProvider is ready.
+  void setAuthProvider(AuthProvider authProvider) {
+    _authProvider = authProvider;
   }
 
-  /// Schedule reminders on app startup without waiting for Health screen to open.
-  /// This ensures notifications work even when the app is closed.
-  Future<void> _scheduleRemindersOnStartup() async {
+  HealthProvider() {
+    _notificationService.initialize();
+    // Startup scheduling is triggered by scheduleRemindersIfAuthenticated()
+    // which is called after auth is confirmed, not blindly on construction.
+  }
+
+  /// Call this once after the user is confirmed authenticated.
+  /// Guards against calling API endpoints before a token exists.
+  Future<void> scheduleRemindersIfAuthenticated() async {
     if (_isInitialized) return;
+
+    // Only proceed if we have an auth token
+    final token = _authProvider?.token;
+    if (token == null || token.isEmpty) {
+      debugPrint(
+        '⏭️ Skipping startup hydration schedule — not authenticated yet.',
+      );
+      return;
+    }
 
     try {
       _settings = await _apiService.getHealthSettings();
@@ -40,14 +58,16 @@ class HealthProvider with ChangeNotifier {
             _settings!.reminderInterval,
             username,
           );
-          debugPrint('✅ Hydration reminders scheduled on startup (interval: ${_settings!.reminderInterval} min)');
+          debugPrint(
+            '✅ Hydration reminders scheduled on startup (interval: ${_settings!.reminderInterval} min)',
+          );
         } else {
           await _notificationService.cancelAll();
           debugPrint('❌ Hydration reminders disabled (interval: 0)');
         }
       }
     } catch (e) {
-      debugPrint("Error scheduling reminders on startup: $e");
+      debugPrint('Error scheduling reminders on startup: $e');
     } finally {
       _isInitialized = true;
     }
@@ -177,12 +197,12 @@ class HealthProvider with ChangeNotifier {
     final username = await _apiService.getUsername() ?? 'Friend';
 
     if (_settings!.reminderInterval > 0) {
-      _notificationService.scheduleDailyHydration(
+      await _notificationService.scheduleDailyHydration(
         _settings!.reminderInterval,
         username,
       );
     } else {
-      _notificationService.cancelAll();
+      await _notificationService.cancelAll();
     }
   }
 }

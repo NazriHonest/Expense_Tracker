@@ -88,10 +88,7 @@ class NotificationService {
     // Open battery optimization settings via intent
     try {
       const intent = 'android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS';
-      await launchUrl(
-        Uri.parse(intent),
-        mode: LaunchMode.externalApplication,
-      );
+      await launchUrl(Uri.parse(intent), mode: LaunchMode.externalApplication);
     } catch (e) {
       debugPrint('Could not open battery optimization settings: $e');
       // Fallback: open app settings
@@ -183,8 +180,14 @@ class NotificationService {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text(description, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  description,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
               ],
             ),
           ),
@@ -300,7 +303,14 @@ class NotificationService {
 
     // Generate all time slots for one day (7 AM to 11 PM)
     final todaySlots = <tz.TZDateTime>[];
-    var slotTime = tz.TZDateTime(tz.local, now.year, now.month, now.day, startHour, 0);
+    var slotTime = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      startHour,
+      0,
+    );
 
     while (slotTime.hour < endHour) {
       todaySlots.add(slotTime);
@@ -346,7 +356,9 @@ class NotificationService {
       idCounter++;
     }
 
-    debugPrint('💧 Scheduled $idCounter hydration reminders from ${startHour}:00 to ${endHour}:00 (interval: ${intervalMinutes} min)');
+    debugPrint(
+      '💧 Scheduled $idCounter hydration reminders from $startHour:00 to $endHour:00 (interval: $intervalMinutes min)',
+    );
   }
 
   Future<void> cancelAll() async {

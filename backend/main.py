@@ -65,6 +65,18 @@ def _get_repo(pool: asyncpg.Pool = Depends(get_db_pool)) -> ExpenseRepository:
 async def get_balance(repo: ExpenseRepository = Depends(_get_repo), user_id: int = Depends(get_current_user_id)):
     return await repo.get_balance_summary(user_id)
 
+@app.get("/debug-routes", tags=["Debug"])
+async def debug_routes():
+    routes = []
+    for route in app.routes:
+        if isinstance(route, APIRoute):
+            routes.append({
+                "path": route.path,
+                "name": route.name,
+                "methods": list(route.methods)
+            })
+    return {"routes": routes}
+
 
 # Include all routers
 app.include_router(auth_router)

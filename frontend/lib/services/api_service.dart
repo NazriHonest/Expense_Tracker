@@ -38,11 +38,32 @@ class ApiService {
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
           }
+          debugPrint(
+            '[API] ${options.method} ${options.path} | authed: ${token != null}',
+          );
           return handler.next(options);
         },
+        onResponse: (response, handler) {
+          debugPrint(
+            '[API] ✅ ${response.statusCode} ${response.requestOptions.path}',
+          );
+          return handler.next(response);
+        },
         onError: (DioException e, handler) {
-          if (e.response?.statusCode == 401) {
-            debugPrint("Unauthorized - Logging out user...");
+          final statusCode = e.response?.statusCode;
+          final path = e.requestOptions.path;
+          final hadToken = e.requestOptions.headers.containsKey(
+            'Authorization',
+          );
+
+          debugPrint(
+            '[API] ❌ $statusCode $path | hadToken: $hadToken | ${e.message}',
+          );
+
+          if (statusCode == 401 && hadToken) {
+            // Only logout if we actually sent a token and the server rejected it.
+            // Prevents startup crash when unauthenticated requests return 401.
+            debugPrint('[API] 401 with token — logging out user.');
             _authProvider?.logout();
           }
           return handler.next(e);
@@ -58,29 +79,61 @@ class ApiService {
   // --- Auth Endpoints ---
   Future<String> login(String email, String password) async {
     try {
+      print('🔐 [ApiService] Sending login request for email $email');
+      print('🔐 [ApiService] Request URL: ${_dio.options.baseUrl}/auth/token');
+
       final response = await _dio.post(
         '/auth/token',
-        data: FormData.fromMap({
-          'username': email,
-          'password': password,
-        }),
-        options: Options(
-          contentType: Headers.formUrlEncodedContentType,
-          headers: {
-            'Accept': 'application/json',
-          },
-        ),
+        data: {'username': email, 'password': password},
+        options: Options(contentType: Headers.formUrlEncodedContentType),
       );
+
+      print('✅ [ApiService] Login successful');
+      print('✅ [ApiService] Response data: ${response.data}');
       return response.data['access_token'];
     } on DioException catch (e) {
-      final errorMessage = e.response?.data?['detail'] ??
-                          e.response?.data?.toString() ??
-                          'Login failed';
-      debugPrint('ApiService: Login error - $errorMessage');
+      print('❌ [ApiService] DioException type: ${e.type}');
+      print('❌ [ApiService] DioException message: ${e.message}');
+      print('❌ [ApiService] DioException error: ${e.error}');
+      print(
+        '❌ [ApiService] DioException response status: ${e.response?.statusCode}',
+      );
+      print('❌ [ApiService] DioException response data: ${e.response?.data}');
+
+      String errorMessage;
+
+      if (e.response?.statusCode == 401) {
+        errorMessage = 'Invalid email or password';
+      } else if (e.response?.statusCode == 422) {
+        // Validation error - get the detail message
+        errorMessage = e.response?.data['detail'] ?? 'Validation error';
+      } else if (e.type == DioExceptionType.connectionError) {
+        errorMessage =
+            'Cannot connect to server. Please check your internet connection.';
+      } else if (e.type == DioExceptionType.connectionTimeout) {
+        errorMessage = 'Connection timeout. Server might be starting up.';
+      } else {
+        // Try to extract error message from response
+        try {
+          if (e.response?.data != null) {
+            if (e.response?.data is Map && e.response?.data['detail'] != null) {
+              errorMessage = e.response?.data['detail'];
+            } else {
+              errorMessage = e.response!.data.toString();
+            }
+          } else {
+            errorMessage = e.message ?? 'Login failed';
+          }
+        } catch (parseError) {
+          errorMessage = 'Login failed: ${e.message}';
+        }
+      }
+
+      print('❌ [ApiService] Login error - $errorMessage');
       throw Exception(errorMessage);
     } catch (e) {
-      debugPrint('ApiService: Unknown error during login: $e');
-      rethrow;
+      print('❌ [ApiService] Unknown error: $e');
+      throw Exception('Login failed: Unexpected error');
     }
   }
 
